@@ -1,0 +1,21 @@
+{
+  "name": "Superb IT Asset Manager",
+  "short_name": "SuperbAssets",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#183d5c",
+  "theme_color": "#183d5c",
+  "description": "Asset manager for Superb Hyper",
+  "icons": [
+    {
+      "src": "NEW LOGO.jpg",
+      "type": "image/jpeg",
+      "sizes": "192x192"
+    },
+    {
+      "src": "NEW LOGO.jpg",
+      "type": "image/jpeg",
+      "sizes": "512x512"
+    }
+  ]
+}
