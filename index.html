@@ -5,8 +5,8 @@
   <title>Superb IT Asset Manager</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Orbitron:wght@700&display=swap" rel="stylesheet">
-  <script src="https://unpkg.com/@zxing/library@0.19.2/umd/index.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src=" https://unpkg.com/ @zxing/library@0.19.2/umd/index.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js "></script>
   <style>
     :root {
       --superb-blue: #183d5c;
@@ -135,6 +135,10 @@
       vertical-align: middle;
     }
     body.dark .badge { background: #13e1c6; color: #222f40;}
+    .faulty-badge {
+      background: #e04d3c !important;
+    }
+    body.dark .faulty-badge { background: #d93424; }
     .asset-list {
       list-style: none;
       padding: 0;
@@ -341,8 +345,9 @@
     if (localStorage.getItem('superb_darkmode') === '1') setDarkMode(true);
 
     // JSONBin Settings
-    const JSONBIN_API = "https://api.jsonbin.io/v3/b/68627eea8561e97a502edc31";
-    const JSONBIN_KEY = "$2a$10$bB1IBj9WSxtFv8ueIC2FVuD60I3VYAsTardsW0hv4AiIU.KY77exu";
+    const JSONBIN_API = "https://api.jsonbin.io/v3/b/686e6c4d5f4bcf6c3afb1182";
+    const JSONBIN_KEY = "$2a$10$BqM/s2f2kqZGoB5V14WtWOPOVO5/ccx/wZtBqmQsgeQqh6WMp42We";
+
     const ASSET_TYPES = [
       "Laptop", "Desktop", "Monitor", "Printer", "Router", "Switch", "Scanner",
       "Keyboard", "Mouse", "UPS", "Projector", "Tablet", "Phone", "Access Point",
@@ -354,6 +359,7 @@
       "PRICING", "RECEIVING", "BARCODING", "DAMAGES", "OFFICE",
       "CASH OFFICE", "SPARE", "TESTING", "DUMPING", "STORAGE"
     ];
+
     let ALL_ASSETS = [];
     let CURRENT_TYPE = "All Types";
 
@@ -365,6 +371,7 @@
       }
       return counts;
     }
+
     function populateTypeFilter() {
       const sel = document.getElementById("typeFilter");
       const typeCounts = getTypeCounts();
@@ -372,8 +379,6 @@
         ...ASSET_TYPES,
         ...ALL_ASSETS.map(a => a.Type).filter(Boolean)
       ])].sort();
-
-      // All Types (total)
       const total = ALL_ASSETS.length;
       sel.innerHTML = `<option value="All Types">All Types (${total})</option>` +
         allTypes.map(t =>
@@ -387,8 +392,20 @@
         let res = await fetch(JSONBIN_API + "/latest", {
           headers: { "X-Master-Key": JSONBIN_KEY }
         });
+        if (!res.ok) throw new Error(`HTTP error! Status: ${res.status}`);
         let data = await res.json();
         ALL_ASSETS = data.record || [];
+        if (!ALL_ASSETS.length) {
+          ALL_ASSETS = [{
+            Name: "Sample Laptop",
+            Type: "Laptop",
+            Serial: "SN123456",
+            Area: "Office",
+            Assigned: "",
+            Notes: "",
+            Faulty: false
+          }];
+        }
         populateTypeFilter();
         renderAssets(
           document.getElementById("searchInput").value,
@@ -404,7 +421,6 @@
         let updated = [...ALL_ASSETS];
         if (typeof editingIdx === "number") updated[editingIdx] = asset;
         else updated.push(asset);
-
         let res = await fetch(JSONBIN_API, {
           method: "PUT",
           headers: { "Content-Type": "application/json", "X-Master-Key": JSONBIN_KEY },
@@ -448,25 +464,26 @@
         return;
       }
       box.innerHTML = filtered.map((a, i) => `
-        <li class="asset-card${a.open?" open":""}" data-idx="${ALL_ASSETS.indexOf(a)}">
+        <li class="asset-card${a.open?" open":""}" data-idx="${i}">
           <div class="asset-card-header">
             <span>${a.Name || "<i>Unnamed Asset</i>"}</span>
+            ${a.Faulty ? '<span class="badge faulty-badge">Faulty</span>' : ''}
             <span class="expand-icon">&#9654;</span>
           </div>
           <div class="asset-details">
             <div><label>Type:</label> <span class="chip">${a.Type || "-"}</span></div>
+            <div><label>Faulty:</label> ${a.Faulty ? 'Yes' : 'No'}</div>
             <div><label>Serial:</label> ${a.Serial || "-"} </div>
             <div><label>Area:</label> ${a.Area || "-"} </div>
             <div><label>Assigned:</label> ${a.Assigned || "-"} </div>
             <div><label>Notes:</label> ${a.Notes || "-"} </div>
             <div class="asset-actions">
-              <button class="btn" onclick="editAsset(${ALL_ASSETS.indexOf(a)})">Edit</button>
-              <button class="btn delete" onclick="deleteAsset(${ALL_ASSETS.indexOf(a)})">Delete</button>
+              <button class="btn" onclick="editAsset(${i})">Edit</button>
+              <button class="btn delete" onclick="deleteAsset(${i})">Delete</button>
             </div>
           </div>
         </li>
       `).join("");
-      // Interactivity
       box.querySelectorAll('.asset-card-header').forEach(header => {
         header.onclick = function() {
           let card = header.closest('.asset-card');
@@ -495,6 +512,10 @@
           </select>
           <input type="text" name="Assigned" placeholder="Assigned To" value="${asset.Assigned||""}">
           <textarea name="Notes" placeholder="Notes" style="min-height:48px">${asset.Notes||""}</textarea>
+          <label style="display:flex;align-items:center;margin-top:6px;">
+            <input type="checkbox" name="Faulty" ${asset.Faulty ? "checked" : ""} style="margin-right:8px;">
+            Faulty
+          </label>
           <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:12px;">
             <button class="btn" type="submit" style="flex:1;">Save</button>
             <button class="btn cancel" type="button" id="cancelBtn" style="flex:1;">Cancel</button>
@@ -504,8 +525,12 @@
       `;
       document.getElementById("assetForm").onsubmit = function(e) {
         e.preventDefault();
-        const form = new FormData(e.target);
-        const newAsset = Object.fromEntries(form.entries());
+        const form = e.target;
+        const formData = Object.fromEntries(new FormData(form));
+        const newAsset = {
+          ...formData,
+          Faulty: form.Faulty.checked
+        };
         saveAsset(newAsset, editingIdx);
         modal.classList.remove("show");
       };
@@ -516,6 +541,7 @@
         openBarcodeScanner(document.getElementById("serialInput"));
       };
     }
+
     function openBarcodeScanner(inputElem) {
       let modal = document.createElement("div");
       modal.id = "scanner-container";
@@ -562,6 +588,7 @@
           statusElem.textContent = "Camera error: " + e;
         });
     }
+
     window.editAsset = function(idx) {
       showForm(ALL_ASSETS[idx], idx);
     };
@@ -570,9 +597,9 @@
     document.getElementById("exportBtn").onclick = function() {
       if (!ALL_ASSETS.length) return alert("No assets to export.");
       const csv = [
-        ["Name","Type","Serial","Area","Assigned","Notes"].join(","),
+        ["Name","Type","Serial","Area","Assigned","Notes","Faulty"].join(","),
         ...ALL_ASSETS.map(a =>
-          [a.Name,a.Type,a.Serial,a.Area,a.Assigned,a.Notes]
+          [a.Name,a.Type,a.Serial,a.Area,a.Assigned,a.Notes,a.Faulty ? "Yes" : "No"]
             .map(x => `"${(x||"").replace(/"/g,'""')}"`).join(",")
         )
       ].join("\n");
@@ -602,13 +629,16 @@
     };
 
     document.getElementById("addFab").onclick = function() { showForm(); };
+
     document.getElementById("searchInput").oninput = function(e) {
       renderAssets(e.target.value, document.getElementById("typeFilter").value);
     };
+
     document.getElementById("typeFilter").onchange = function(e) {
       CURRENT_TYPE = e.target.value;
       renderAssets(document.getElementById("searchInput").value, document.getElementById("typeFilter").value);
     };
+
     setTimeout(fetchAssets, 120);
     window.onresize = function() {
       renderAssets(document.getElementById("searchInput").value, document.getElementById("typeFilter").value);
