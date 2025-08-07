@@ -1,347 +1,428 @@
-<script type="text/javascript">
-        var gk_isXlsx = false;
-        var gk_xlsxFileLookup = {};
-        var gk_fileData = {};
-        function filledCell(cell) {
-          return cell !== '' && cell != null;
-        }
-        function loadFileData(filename) {
-        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
-            try {
-                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
-                var firstSheetName = workbook.SheetNames[0];
-                var worksheet = workbook.Sheets[firstSheetName];
-
-                // Convert sheet to JSON to filter blank rows
-                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
-                // Filter out blank rows (rows where all cells are empty, null, or undefined)
-                var filteredData = jsonData.filter(row => row.some(filledCell));
-
-                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
-                var headerRowIndex = filteredData.findIndex((row, index) =>
-                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
-                );
-                // Fallback
-                if (headerRowIndex === -1 || headerRowIndex > 25) {
-                  headerRowIndex = 0;
-                }
-
-                // Convert filtered JSON back to CSV
-                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
-                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
-                return csv;
-            } catch (e) {
-                console.error(e);
-                return "";
-            }
-        }
-        return gk_fileData[filename] || "";
-        }
-        </script><!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Superb IT Asset Manager</title>
+  <title>NEON IT Asset Manager</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Roboto+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
   <script src="https://unpkg.com/@zxing/library@0.19.2/umd/index.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <style>
     :root {
-      --neon-blue: #00f0ff;
-      --neon-pink: #ff00e6;
-      --neon-purple: #7b00ff;
-      --dark-bg: #0a0e1a;
-      --card-bg: #1a2333;
-      --glow-accent: #00f0ff88;
-      --text-glow: #ffffffcc;
-      --holo-gradient: linear-gradient(135deg, #00f0ff22 0%, #ff00e622 50%, #7b00ff22 100%);
-      --card-glow: 0 0 10px #00f0ff55, 0 0 20px #ff00e644, 0 0 30px #7b00ff33;
-      --button-glow: 0 0 8px #00f0ff99, 0 0 15px #ff00e666;
-      --reserved-color: #ff9100;
-      --quantity-color: #00ff88;
+      --neon-pink: #ff2a6d;
+      --neon-blue: #05d9e8;
+      --neon-purple: #d300c5;
+      --neon-green: #00ff9d;
+      --neon-yellow: #f9f002;
+      --dark-bg: #0d0221;
+      --darker-bg: #050112;
+      --card-bg: #1a1b41;
+      --card-border: #2a3d7a;
+      --text-main: #d1f7ff;
+      --text-dim: #8b9bb4;
+      --glow-blue: 0 0 10px rgba(5, 217, 232, 0.7), 0 0 20px rgba(5, 217, 232, 0.5);
+      --glow-pink: 0 0 10px rgba(255, 42, 109, 0.7), 0 0 20px rgba(255, 42, 109, 0.5);
+      --glow-purple: 0 0 10px rgba(211, 0, 197, 0.7), 0 0 20px rgba(211, 0, 197, 0.5);
+      --glow-green: 0 0 10px rgba(0, 255, 157, 0.7), 0 0 20px rgba(0, 255, 157, 0.5);
+      --chip-bg: linear-gradient(135deg, var(--neon-blue) 0%, var(--neon-purple) 100%);
+      --reserved-color: var(--neon-yellow);
+      --quantity-color: var(--neon-green);
+      --faulty-color: var(--neon-pink);
     }
-    body.dark {
-      --neon-blue: #00e4ff;
-      --neon-pink: #ff33f0;
-      --neon-purple: #8b33ff;
-      --dark-bg: #0e1424;
-      --card-bg: #222b40;
-      --glow-accent: #00e4ff88;
-      --text-glow: #ffffffdd;
-      --holo-gradient: linear-gradient(135deg, #00e4ff22 0%, #ff33f022 50%, #8b33ff22 100%);
-      --card-glow: 0 0 12px #00e4ff66, 0 0 22px #ff33f055, 0 0 32px #8b33ff44;
-      --button-glow: 0 0 10px #00e4ffaa, 0 0 18px #ff33f077;
-      --reserved-color: #ffa733;
-      --quantity-color: #33ff99;
-    }
-    html, body {
+    
+    body {
       min-height: 100vh;
       height: 100vh;
       width: 100vw;
       margin: 0;
       padding: 0;
       box-sizing: border-box;
-      background: var(--dark-bg);
-      font-family: 'Roboto Mono', monospace;
-      color: var(--text-glow);
+      background: radial-gradient(circle at center, var(--dark-bg) 0%, var(--darker-bg) 100%);
+      font-family: 'Rajdhani', sans-serif;
+      color: var(--text-main);
       -webkit-tap-highlight-color: transparent;
       overflow-x: hidden;
-      background-image: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"%3E%3Crect fill="%23001a33" width="100" height="100"/%3Cpath fill="%2300f0ff22" d="M0,0 L100,100 M100,0 L0,100" stroke="%2300f0ff33" stroke-width="0.5"/%3C/svg%3E');
-      background-size: 100px;
-      animation: subtle-pulse 10s infinite ease-in-out;
+      position: relative;
     }
-    body {
-      display: flex;
-      flex-direction: column;
-      align-items: stretch;
-      justify-content: flex-start;
-      height: 100vh;
-      width: 100vw;
-      perspective: 1000px;
+    
+    body::before {
+      content: "";
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: 
+        linear-gradient(45deg, transparent 65%, rgba(255, 42, 109, 0.05) 65%) 0 0,
+        linear-gradient(-45deg, transparent 65%, rgba(5, 217, 232, 0.05) 65%) 0 0;
+      background-size: 20px 20px;
+      pointer-events: none;
+      z-index: -1;
     }
+    
+    /* Cyberpunk grid lines animation */
+    @keyframes scanline {
+      0% { transform: translateY(-100%); }
+      100% { transform: translateY(100%); }
+    }
+    
+    .scanlines {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(
+        to bottom,
+        transparent 0%,
+        rgba(5, 217, 232, 0.03) 50%,
+        transparent 100%
+      );
+      background-size: 100% 4px;
+      animation: scanline 8s linear infinite;
+      pointer-events: none;
+      z-index: 0;
+    }
+    
     header {
-      background: var(--card-bg);
-      box-shadow: var(--card-glow);
-      border-bottom: 2px solid var(--neon-blue);
-      padding: 20px 0 12px 0;
+      background: rgba(26, 27, 65, 0.85);
+      backdrop-filter: blur(8px);
+      box-shadow: 0 0 20px rgba(5, 217, 232, 0.3);
+      border-bottom: 1px solid var(--neon-blue);
+      padding: 18px 0 14px 0;
       text-align: center;
-      font-family: 'Orbitron', monospace;
-      font-size: 2rem;
-      font-weight: 700;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 1.8rem;
+      font-weight: 900;
       letter-spacing: 2px;
       display: flex;
       align-items: center;
       justify-content: center;
       position: relative;
-      text-shadow: 0 0 10px var(--neon-blue), 0 0 20px var(--neon-pink);
-      transform: translateZ(20px);
-      animation: neon-flicker 5s infinite;
+      z-index: 10;
+      text-transform: uppercase;
+      color: var(--neon-blue);
+      text-shadow: var(--glow-blue);
     }
+    
     .dark-toggle-btn {
       position: absolute;
-      right: 15px; top: 15px;
-      background: linear-gradient(90deg, var(--neon-purple), var(--neon-blue));
+      right: 20px; top: 14px;
+      background: linear-gradient(135deg, var(--neon-purple) 0%, var(--neon-blue) 100%);
       color: #fff;
-      font-size: 1.5rem;
+      font-size: 1.4rem;
+      font-weight: 700;
       border-radius: 50%;
-      width: 48px; height: 48px;
+      width: 42px; height: 42px;
       display: flex;
       align-items: center;
       justify-content: center;
-      border: 2px solid var(--neon-blue);
+      border: none;
       cursor: pointer;
-      box-shadow: var(--button-glow);
+      box-shadow: 0 0 15px rgba(211, 0, 197, 0.7);
       z-index: 200;
-      transition: transform 0.2s, box-shadow 0.2s;
+      transition: all 0.3s ease;
     }
+    
     .dark-toggle-btn:hover {
-      transform: scale(1.1) translateZ(10px);
-      box-shadow: 0 0 15px var(--neon-blue), 0 0 25px var(--neon-purple);
+      transform: scale(1.1);
+      box-shadow: 0 0 20px rgba(211, 0, 197, 0.9);
     }
+    
     .search-bar {
       display: flex;
       gap: 12px;
-      background: var(--card-bg);
-      padding: 15px;
+      background: rgba(26, 27, 65, 0.85);
+      backdrop-filter: blur(8px);
+      padding: 15px 20px;
       position: sticky;
       top: 0;
       z-index: 20;
-      border-bottom: 2px solid var(--neon-blue);
+      border-bottom: 1px solid rgba(5, 217, 232, 0.3);
       align-items: center;
       flex-wrap: wrap;
-      box-shadow: var(--card-glow);
-      transform: translateZ(15px);
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
     }
-    body.dark .search-bar {
-      border-bottom: 2px solid var(--neon-purple);
-    }
+    
     .search-bar input, .search-bar select {
-      font-size: 1.1rem;
-      padding: 12px;
-      border: 2px solid var(--neon-blue);
-      border-radius: 10px;
+      font-size: 1.11rem;
+      padding: 12px 15px;
+      border: 1px solid var(--neon-blue);
+      border-radius: 8px;
       outline: none;
       flex: 1;
-      min-width: 130px;
-      background: #0a0e1a88;
-      color: var(--text-glow);
-      box-shadow: inset 0 0 8px var(--glow-accent);
+      min-width: 120px;
+      background: rgba(10, 15, 35, 0.8);
+      color: var(--text-main);
+      font-family: 'Rajdhani', sans-serif;
+      font-weight: 600;
       transition: all 0.3s ease;
-      font-family: 'Roboto Mono', monospace;
+      box-shadow: inset 0 0 10px rgba(5, 217, 232, 0.2);
     }
+    
     .search-bar input:focus, .search-bar select:focus {
-      box-shadow: 0 0 15px var(--neon-blue), inset 0 0 10px var(--neon-pink);
       border-color: var(--neon-pink);
-      transform: translateZ(5px);
+      box-shadow: inset 0 0 15px rgba(255, 42, 109, 0.3), 0 0 10px rgba(255, 42, 109, 0.5);
     }
-    body.dark .search-bar input, body.dark .search-bar select {
-      background: #0e142488;
-      border-color: var(--neon-purple);
+    
+    .search-bar input::placeholder {
+      color: var(--text-dim);
     }
-    .search-bar .btn, .search-bar .download-pdf-btn {
-      flex: 0 0 auto;
-    }
+    
     .download-pdf-btn {
       background: none;
       border: none;
       cursor: pointer;
-      margin-left: 10px;
-      font-size: 1.8rem;
+      margin-left: 8px;
+      font-size: 1.6rem;
+      vertical-align: middle;
       color: var(--neon-blue);
-      transition: all 0.2s;
-      padding: 5px;
+      transition: all 0.3s ease;
+      padding: 4px 0 0 0;
+      outline: none;
+      text-shadow: var(--glow-blue);
     }
+    
     .download-pdf-btn:hover {
       color: var(--neon-pink);
-      text-shadow: 0 0 10px var(--neon-pink);
-      transform: translateZ(10px);
+      text-shadow: var(--glow-pink);
+      transform: scale(1.1);
     }
+    
     .badge {
       display: inline-block;
-      min-width: 24px;
-      padding: 4px 10px;
-      font-size: 14px;
-      background: linear-gradient(90deg, var(--neon-blue), var(--neon-purple));
-      color: #fff;
-      border-radius: 14px;
-      margin-left: 8px;
-      font-weight: 600;
-      box-shadow: 0 0 8px var(--glow-accent);
-      transform: translateZ(5px);
+      min-width: 22px;
+      padding: 3px 10px;
+      font-size: 13px;
+      background: var(--neon-blue);
+      color: var(--dark-bg);
+      border-radius: 15px;
+      margin-left: 7px;
+      font-weight: 700;
+      vertical-align: middle;
+      text-shadow: none;
+      box-shadow: 0 0 8px rgba(5, 217, 232, 0.7);
     }
-    body.dark .badge {
-      background: linear-gradient(90deg, var(--neon-purple), var(--neon-blue));
-    }
+    
     .faulty-badge {
-      background: linear-gradient(90deg, #ff3333, #cc0000) !important;
-      box-shadow: 0 0 10px #ff3333aa !important;
+      background: var(--faulty-color) !important;
+      color: var(--dark-bg);
+      box-shadow: 0 0 8px rgba(255, 42, 109, 0.7);
     }
+    
     .reserved-badge {
-      background: linear-gradient(90deg, var(--reserved-color), #cc7000) !important;
-      box-shadow: 0 0 10px var(--reserved-color) !important;
+      background: var(--reserved-color) !important;
+      color: var(--dark-bg);
+      box-shadow: 0 0 8px rgba(249, 240, 2, 0.7);
     }
+    
     .quantity-badge {
-      background: linear-gradient(90deg, var(--quantity-color), #00cc66) !important;
-      box-shadow: 0 0 10px var(--quantity-color) !important;
+      background: var(--quantity-color) !important;
+      color: var(--dark-bg);
+      box-shadow: 0 0 8px rgba(0, 255, 157, 0.7);
     }
+    
     .asset-list {
       list-style: none;
-      padding: 0;
+      padding: 15px;
       margin: 0;
       flex: 1 1 auto;
       overflow-y: auto;
       background: transparent;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 15px;
+      perspective: 1000px;
     }
+    
     .asset-card {
-      background: var(--card-bg);
-      margin: 15px;
+      background: linear-gradient(145deg, rgba(26, 27, 65, 0.9) 0%, rgba(10, 15, 35, 0.9) 100%);
       border-radius: 12px;
-      box-shadow: var(--card-glow);
-      border: 1px solid var(--neon-blue);
-      transition: transform 0.3s, box-shadow 0.3s;
+      box-shadow: 0 5px 25px rgba(5, 217, 232, 0.2);
+      border: 1px solid var(--card-border);
+      transition: all 0.3s ease;
       position: relative;
-      transform: translateZ(10px);
+      overflow: hidden;
+      transform-style: preserve-3d;
+      transform: translateZ(0);
     }
+    
+    .asset-card::before {
+      content: "";
+      position: absolute;
+      top: -2px;
+      left: -2px;
+      right: -2px;
+      bottom: -2px;
+      background: linear-gradient(45deg, var(--neon-blue), var(--neon-purple), var(--neon-pink));
+      z-index: -1;
+      border-radius: 14px;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+    
     .asset-card:hover {
-      transform: translateZ(20px) scale(1.02);
-      box-shadow: 0 0 20px var(--neon-blue), 0 0 30px var(--neon-pink);
+      transform: translateY(-5px) translateZ(10px);
+      box-shadow: 0 15px 35px rgba(5, 217, 232, 0.4);
     }
-    body.dark .asset-card {
-      border: 1px solid var(--neon-purple);
+    
+    .asset-card:hover::before {
+      opacity: 0.3;
     }
+    
+    .asset-card.open {
+      box-shadow: 0 10px 30px rgba(5, 217, 232, 0.6);
+      transform: translateY(-3px);
+    }
+    
     .asset-card-header {
-      font-weight: 600;
+      font-weight: 700;
       font-size: 1.2rem;
-      padding: 16px 22px;
+      padding: 18px 20px;
       display: flex;
       align-items: center;
       justify-content: space-between;
       cursor: pointer;
       user-select: none;
-      color: var(--text-glow);
-      text-shadow: 0 0 5px var(--neon-blue);
+      color: var(--neon-blue);
+      text-shadow: var(--glow-blue);
+      border-bottom: 1px solid rgba(5, 217, 232, 0.2);
+      transition: all 0.3s ease;
     }
+    
+    .asset-card:hover .asset-card-header {
+      color: var(--neon-green);
+      text-shadow: var(--glow-green);
+    }
+    
     .asset-card .expand-icon {
-      margin-left: 10px;
-      font-size: 1.5rem;
-      color: var(--neon-pink);
-      transition: transform 0.3s ease;
+      margin-left: 8px;
+      font-size: 1.44rem;
+      color: var(--neon-blue);
+      transition: all 0.3s ease;
+      text-shadow: var(--glow-blue);
     }
+    
     .asset-card.open .expand-icon {
       transform: rotate(90deg);
+      color: var(--neon-green);
+      text-shadow: var(--glow-green);
     }
-    .asset-card.open {
-      box-shadow: 0 0 25px var(--neon-blue), 0 0 35px var(--neon-purple);
-      transform: translateZ(15px);
-    }
+    
     .asset-details {
       display: none;
-      padding: 12px 24px 16px;
+      padding: 15px 22px;
       font-size: 1.05rem;
-      animation: holo-fade 0.5s ease;
-      color: var(--text-glow);
-      background: var(--holo-gradient);
-      border-top: 1px solid var(--neon-blue);
+      animation: fadein 0.3s ease-out;
+      color: var(--text-main);
+      line-height: 1.6;
     }
+    
     .asset-card.open .asset-details {
       display: block;
     }
+    
     .asset-details label {
       font-weight: 600;
-      color: var(--neon-pink);
-      text-shadow: 0 0 5px var(--neon-pink);
+      color: var(--neon-green);
+      display: inline-block;
+      min-width: 80px;
     }
+    
     .asset-details .chip {
       display: inline-block;
-      background: linear-gradient(90deg, var(--neon-blue), var(--neon-purple));
-      color: #fff;
-      border-radius: 8px;
-      font-size: 14px;
-      font-weight: 600;
-      padding: 4px 10px;
-      margin-right: 8px;
-      box-shadow: 0 0 8px var(--glow-accent);
+      background: var(--chip-bg);
+      color: var(--dark-bg);
+      border-radius: 6px;
+      font-size: 13.5px;
+      font-weight: 700;
+      padding: 3px 12px;
+      margin-right: 6px;
+      margin-bottom: 5px;
+      box-shadow: 0 0 8px rgba(5, 217, 232, 0.5);
     }
+    
     .asset-actions {
       display: flex;
       gap: 12px;
-      margin-top: 12px;
+      margin-top: 15px;
+      flex-wrap: wrap;
     }
+    
     .btn {
       border: none;
       outline: none;
-      font-size: 1.15rem;
-      border-radius: 10px;
-      font-weight: 600;
+      font-size: 1.12rem;
+      border-radius: 8px;
+      font-weight: 700;
       padding: 12px 25px;
       cursor: pointer;
-      background: linear-gradient(90deg, var(--neon-blue), var(--neon-purple));
-      color: #fff;
-      box-shadow: var(--button-glow);
+      background: linear-gradient(135deg, var(--neon-blue) 0%, var(--neon-purple) 100%);
+      color: var(--dark-bg);
       transition: all 0.3s ease;
-      font-family: 'Roboto Mono', monospace;
-      transform: translateZ(5px);
+      font-family: 'Rajdhani', sans-serif;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      box-shadow: 0 5px 15px rgba(5, 217, 232, 0.3);
+      position: relative;
+      overflow: hidden;
+      flex: 1;
+      min-width: 120px;
     }
+    
+    .btn::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+      transition: all 0.5s ease;
+    }
+    
     .btn:hover {
-      transform: translateZ(10px) scale(1.05);
-      box-shadow: 0 0 15px var(--neon-blue), 0 0 25px var(--neon-purple);
+      transform: translateY(-3px);
+      box-shadow: 0 8px 20px rgba(5, 217, 232, 0.5);
     }
+    
+    .btn:hover::before {
+      left: 100%;
+    }
+    
+    .btn:active {
+      transform: translateY(1px);
+    }
+    
     .btn.delete {
-      background: linear-gradient(90deg, #ff3333, #cc0000);
-      box-shadow: 0 0 10px #ff3333aa;
+      background: linear-gradient(135deg, var(--neon-pink) 0%, #ff2a6d80 100%);
+      box-shadow: 0 5px 15px rgba(255, 42, 109, 0.3);
     }
+    
+    .btn.delete:hover {
+      box-shadow: 0 8px 20px rgba(255, 42, 109, 0.5);
+    }
+    
     .btn.cancel {
-      background: linear-gradient(90deg, #555, #333);
-      color: var(--text-glow);
+      background: linear-gradient(135deg, #555 0%, #333 100%);
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+      color: var(--text-main);
     }
+    
     .btn.scan {
-      background: linear-gradient(90deg, var(--quantity-color), var(--neon-blue));
-      margin-left: 8px;
-      border-radius: 10px;
-      padding: 12px 16px;
-      box-shadow: 0 0 10px var(--quantity-color);
+      background: linear-gradient(135deg, var(--neon-green) 0%, var(--neon-blue) 100%);
+      color: var(--dark-bg);
+      margin-left: 6px;
+      border-radius: 8px;
+      padding: 12px 18px;
+      box-shadow: 0 5px 15px rgba(0, 255, 157, 0.3);
+      font-size: 1rem;
     }
+    
+    .btn.scan:hover {
+      box-shadow: 0 8px 20px rgba(0, 255, 157, 0.5);
+    }
+    
     .fab {
       position: fixed;
       right: 30px;
@@ -349,282 +430,449 @@
       z-index: 100;
       width: 70px;
       height: 70px;
-      background: linear-gradient(90deg, var(--neon-blue), var(--neon-pink));
+      background: linear-gradient(135deg, var(--neon-pink) 0%, var(--neon-purple) 100%);
       border-radius: 50%;
-      box-shadow: var(--button-glow);
-      font-size: 2.8rem;
-      color: #fff;
+      box-shadow: 0 10px 30px rgba(255, 42, 109, 0.5);
+      font-size: 2.5rem;
+      color: var(--dark-bg);
       border: none;
       display: flex;
       align-items: center;
       justify-content: center;
       cursor: pointer;
       transition: all 0.3s ease;
-      transform: translateZ(15px);
+      font-weight: 700;
+      text-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
     }
+    
     .fab:hover {
-      transform: translateZ(25px) scale(1.1);
-      box-shadow: 0 0 20px var(--neon-blue), 0 0 30px var(--neon-pink);
+      transform: scale(1.1) rotate(90deg);
+      box-shadow: 0 15px 40px rgba(255, 42, 109, 0.7);
     }
+    
+    .fab:active {
+      transform: scale(0.95) rotate(90deg);
+    }
+    
     #formModal, #typesModal {
       position: fixed;
       left: 0;
       top: 0;
       right: 0;
       bottom: 0;
-      background: rgba(10, 14, 26, 0.95);
+      background: rgba(13, 2, 33, 0.95);
+      backdrop-filter: blur(10px);
       display: none;
       align-items: center;
       justify-content: center;
       z-index: 2000;
-      backdrop-filter: blur(5px);
     }
+    
     #formModal.show, #typesModal.show {
       display: flex;
     }
+    
     .form-card, .types-card {
-      background: var(--card-bg);
+      background: linear-gradient(145deg, rgba(26, 27, 65, 0.95) 0%, rgba(10, 15, 35, 0.95) 100%);
       border-radius: 15px;
       padding: 25px 20px;
       min-width: 90vw;
       max-width: 450px;
-      box-shadow: var(--card-glow);
-      color: var(--text-glow);
-      animation: holo-fade 0.5s ease;
-      transform: translateZ(20px);
-      border: 2px solid var(--neon-purple);
+      box-shadow: 0 15px 40px rgba(5, 217, 232, 0.3);
+      color: var(--text-main);
+      animation: modalAppear 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      border: 1px solid var(--card-border);
+      position: relative;
+      overflow: hidden;
     }
+    
+    .form-card::before, .types-card::before {
+      content: "";
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: linear-gradient(
+        to bottom right,
+        transparent 45%,
+        rgba(5, 217, 232, 0.1) 50%,
+        transparent 55%
+      );
+      transform: rotate(30deg);
+      animation: shine 6s infinite linear;
+      pointer-events: none;
+    }
+    
+    @keyframes shine {
+      0% { transform: translateX(-100%) rotate(30deg); }
+      100% { transform: translateX(100%) rotate(30deg); }
+    }
+    
+    @keyframes modalAppear {
+      from { opacity: 0; transform: translateY(30px) scale(0.95); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    
+    .form-card h3, .types-card h3 {
+      margin-top: 0;
+      text-align: center;
+      color: var(--neon-blue);
+      font-family: 'Orbitron', sans-serif;
+      text-shadow: var(--glow-blue);
+      font-size: 1.5rem;
+      margin-bottom: 20px;
+      letter-spacing: 1px;
+    }
+    
     .form-card form, .types-card form {
       display: flex;
       flex-direction: column;
       gap: 15px;
     }
+    
+    .form-card input, .form-card select, .form-card textarea,
+    .types-card input, .types-card select, .types-card textarea {
+      background: rgba(10, 15, 35, 0.8);
+      border: 1px solid var(--neon-blue);
+      border-radius: 8px;
+      padding: 12px 15px;
+      color: var(--text-main);
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 1.1rem;
+      font-weight: 600;
+      outline: none;
+      transition: all 0.3s ease;
+      box-shadow: inset 0 0 10px rgba(5, 217, 232, 0.1);
+    }
+    
+    .form-card input:focus, .form-card select:focus, .form-card textarea:focus,
+    .types-card input:focus, .types-card select:focus, .types-card textarea:focus {
+      border-color: var(--neon-pink);
+      box-shadow: inset 0 0 15px rgba(255, 42, 109, 0.2), 0 0 10px rgba(255, 42, 109, 0.3);
+    }
+    
+    .form-card textarea, .types-card textarea {
+      min-height: 80px;
+      resize: vertical;
+    }
+    
     .footer {
       text-align: center;
       margin: 15px 0;
       color: var(--neon-blue);
-      font-size: 1.1rem;
-      text-shadow: 0 0 8px var(--neon-blue);
+      font-size: 0.9rem;
+      text-shadow: var(--glow-blue);
+      font-family: 'Orbitron', sans-serif;
+      letter-spacing: 1px;
     }
-    body.dark .footer {
-      color: var(--neon-purple);
-    }
+    
     @media (min-width: 700px) {
       .fab {
         width: 80px;
         height: 80px;
         font-size: 3rem;
-        right: 50px;
-        bottom: 50px;
+        right: 40px;
+        bottom: 40px;
       }
+      
       .form-card, .types-card {
-        min-width: 450px;
+        min-width: 500px;
+        padding: 30px 25px;
       }
+      
       .search-bar {
         flex-wrap: nowrap;
       }
+      
       .search-bar input, .search-bar select {
         min-width: auto;
         max-width: 200px;
       }
     }
-    @keyframes neon-flicker {
-      0%, 19%, 21%, 23%, 25%, 54%, 56%, 100% {
-        text-shadow: 0 0 10px var(--neon-blue), 0 0 20px var(--neon-pink);
-      }
-      20%, 24%, 55% {
-        text-shadow: none;
-      }
+    
+    @keyframes fadein {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: none; }
     }
-    @keyframes holo-fade {
-      from {
-        opacity: 0;
-        transform: translateY(20px) translateZ(0);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0) translateZ(20px);
-      }
-    }
-    @keyframes subtle-pulse {
-      0% { background-position: 0 0; }
-      50% { background-position: 100px 100px; }
-      100% { background-position: 0 0; }
-    }
+    
     #scanner-container {
       position: fixed;
       top: 0;
       left: 0;
       right: 0;
       bottom: 0;
-      background: rgba(10, 14, 26, 0.95);
+      background: rgba(13, 2, 33, 0.95);
+      backdrop-filter: blur(10px);
       display: flex;
       align-items: center;
       justify-content: center;
       z-index: 2500;
       flex-direction: column;
-      animation: holo-fade 0.5s ease;
-      backdrop-filter: blur(5px);
+      animation: fadein 0.4s ease-out;
     }
+    
     #scanner-container video {
-      border-radius: 15px;
-      max-width: 95vw;
-      max-height: 60vh;
-      box-shadow: 0 0 20px var(--neon-blue), 0 0 30px var(--neon-purple);
-      border: 2px solid var(--neon-pink);
+      border-radius: 12px;
+      max-width: 97vw;
+      max-height: 55vh;
+      box-shadow: 0 10px 40px rgba(5, 217, 232, 0.5);
+      border: 2px solid var(--neon-blue);
     }
+    
     #scanner-close {
-      background: linear-gradient(90deg, #ff3333, #cc0000);
-      color: #fff;
+      background: linear-gradient(135deg, var(--neon-pink) 0%, #ff2a6d80 100%);
+      color: var(--dark-bg);
       font-size: 18px;
       border: none;
       border-radius: 12px;
       padding: 12px 40px;
       margin-top: 20px;
-      font-weight: 600;
+      font-weight: 700;
       cursor: pointer;
-      box-shadow: 0 0 10px #ff3333aa;
-      transition: all 0.2s;
-      transform: translateZ(5px);
+      box-shadow: 0 5px 20px rgba(255, 42, 109, 0.5);
+      letter-spacing: 0.7px;
+      transition: all 0.3s ease;
+      font-family: 'Rajdhani', sans-serif;
+      text-transform: uppercase;
     }
+    
     #scanner-close:hover {
-      transform: translateZ(10px);
-      box-shadow: 0 0 15px #ff3333cc;
+      transform: translateY(-3px);
+      box-shadow: 0 8px 25px rgba(255, 42, 109, 0.7);
     }
+    
+    #scanner-close:active {
+      transform: translateY(1px);
+    }
+    
     #scanner-status {
-      color: var(--text-glow);
+      color: var(--neon-green);
       margin-top: 15px;
       text-align: center;
       font-size: 18px;
       font-weight: 600;
-      text-shadow: 0 0 10px var(--neon-blue);
+      letter-spacing: 0.5px;
+      text-shadow: var(--glow-green);
+      font-family: 'Orbitron', sans-serif;
     }
+    
     .quantity-input-group {
       display: flex;
       align-items: center;
       gap: 10px;
     }
+    
     .quantity-input-group label {
-      font-weight: 600;
-      color: var(--neon-pink);
-      text-shadow: 0 0 5px var(--neon-pink);
+      font-weight: 700;
+      margin: 0;
+      color: var(--neon-blue);
+      text-shadow: var(--glow-blue);
     }
+    
     .quantity-input-group input {
-      width: 90px;
+      width: 80px;
       padding: 10px;
       text-align: center;
-      background: #0a0e1a88;
-      border: 2px solid var(--neon-blue);
-      color: var(--text-glow);
-      box-shadow: inset 0 0 8px var(--glow-accent);
+      background: rgba(10, 15, 35, 0.8);
+      border: 1px solid var(--neon-blue);
+      border-radius: 8px;
+      color: var(--text-main);
+      font-weight: 700;
     }
+    
     .individual-items-list {
       list-style: none;
       padding-left: 0;
-      max-height: 220px;
+      max-height: 200px;
       overflow-y: auto;
-      border-top: 1px solid var(--neon-blue);
+      border-top: 1px solid rgba(5, 217, 232, 0.3);
       padding-top: 10px;
-      margin-top: 8px;
+      margin-top: 10px;
     }
+    
     .individual-item {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 6px 0;
-      border-bottom: 1px solid var(--neon-blue);
-      color: var(--text-glow);
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(5, 217, 232, 0.2);
     }
+    
+    /* Type management styles */
     .type-management {
       display: flex;
-      gap: 12px;
-      margin-top: 12px;
+      gap: 10px;
+      margin-top: 15px;
     }
+    
     .type-item {
       display: flex;
       justify-content: space-between;
       align-items: center;
       padding: 10px 0;
-      border-bottom: 1px solid var(--neon-blue);
+      border-bottom: 1px solid rgba(5, 217, 232, 0.2);
     }
-    body.dark .type-item {
-      border-bottom: 1px solid var(--neon-purple);
-    }
+    
     .type-actions {
       display: flex;
-      gap: 6px;
+      gap: 8px;
     }
+    
     .type-btn {
       padding: 6px 12px;
-      font-size: 0.95rem;
-      box-shadow: var(--button-glow);
+      font-size: 0.9rem;
+      min-width: 40px;
     }
+    
     .type-input {
       flex: 1;
-      margin-right: 12px;
-      background: #0a0e1a88;
-      border: 2px solid var(--neon-blue);
-      color: var(--text-glow);
-      box-shadow: inset 0 0 8px var(--glow-accent);
-      padding: 8px;
+      margin-right: 10px;
+      background: rgba(10, 15, 35, 0.8);
+      border: 1px solid var(--neon-blue);
       border-radius: 8px;
+      padding: 8px 12px;
+      color: var(--text-main);
+      font-weight: 600;
+    }
+    
+    /* Cyberpunk corner accents */
+    .corner-accent {
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      border-style: solid;
+      border-color: var(--neon-blue);
+      pointer-events: none;
+    }
+    
+    .corner-top-left {
+      top: 0;
+      left: 0;
+      border-width: 2px 0 0 2px;
+    }
+    
+    .corner-top-right {
+      top: 0;
+      right: 0;
+      border-width: 2px 2px 0 0;
+    }
+    
+    .corner-bottom-left {
+      bottom: 0;
+      left: 0;
+      border-width: 0 0 2px 2px;
+    }
+    
+    .corner-bottom-right {
+      bottom: 0;
+      right: 0;
+      border-width: 0 2px 2px 0;
+    }
+    
+    /* Add corner accents to cards */
+    .asset-card, .form-card, .types-card {
+      position: relative;
+    }
+    
+    .asset-card .corner-accent {
+      width: 15px;
+      height: 15px;
+      border-color: var(--neon-blue);
+    }
+    
+    /* Cyberpunk pulse animation */
+    @keyframes pulse {
+      0% { opacity: 0.5; }
+      50% { opacity: 1; }
+      100% { opacity: 0.5; }
+    }
+    
+    .pulse {
+      animation: pulse 2s infinite ease-in-out;
+    }
+    
+    /* Cyberpunk glitch effect */
+    @keyframes glitch {
+      0% { transform: translate(0); }
+      20% { transform: translate(-3px, 3px); }
+      40% { transform: translate(-3px, -3px); }
+      60% { transform: translate(3px, 3px); }
+      80% { transform: translate(3px, -3px); }
+      100% { transform: translate(0); }
+    }
+    
+    .glitch:hover {
+      animation: glitch 0.5s linear infinite;
+    }
+    
+    /* Responsive adjustments */
+    @media (max-width: 600px) {
+      .asset-list {
+        grid-template-columns: 1fr;
+      }
+      
+      .asset-actions {
+        flex-direction: column;
+      }
+      
+      .btn {
+        width: 100%;
+      }
     }
   </style>
 </head>
 <body>
+  <div class="scanlines"></div>
   <header>
-    Superb IT Asset Manager
+    NEON ASSET TRACKER
     <button class="dark-toggle-btn" id="darkModeBtn" title="Toggle dark mode">🌙</button>
   </header>
   <div class="search-bar">
-    <input type="search" id="searchInput" placeholder="Search assets...">
-    <div style="display: flex; align-items: center; flex: 1; min-width: 130px;">
+    <input type="search" id="searchInput" placeholder="SEARCH ASSETS...">
+    <div style="display: flex; align-items: center; flex: 1; min-width: 120px;">
       <select id="typeFilter"></select>
-      <button class="btn" id="manageTypesBtn" style="margin-left: 6px; padding: 12px 14px;" title="Manage Asset Types">⚙️</button>
+      <button class="btn" id="manageTypesBtn" style="margin-left: 5px; padding: 10px 12px;" title="Manage Asset Types">⚙️</button>
     </div>
     <select id="statusFilter">
-      <option value="all">All Assets</option>
-      <option value="faulty">Faulty Only</option>
-      <option value="reserved">Reserved Only</option>
-      <option value="both">Both Faulty & Reserved</option>
-      <option value="neither">Neither Faulty nor Reserved</option>
+      <option value="all">ALL ASSETS</option>
+      <option value="faulty">FAULTY ONLY</option>
+      <option value="reserved">RESERVED ONLY</option>
+      <option value="both">FAULTY & RESERVED</option>
+      <option value="neither">NORMAL ONLY</option>
     </select>
-    <button class="btn" id="exportBtn" style="padding:12px 20px;">Export CSV</button>
+    <button class="btn" id="exportBtn" style="padding:10px 18px;">EXPORT CSV</button>
     <button class="download-pdf-btn" id="pdfBtn" title="Download Type Quantities as PDF">
       &#128459;
     </button>
   </div>
   <ul class="asset-list" id="assetsBox"></ul>
   <button class="fab" id="addFab" title="Add Asset">+</button>
-  <div class="footer">&copy; 2025 Superb Hyper. Data stored securely in JSONBin.</div>
+  <div class="footer">&copy; 2024 CYBER SYSTEMS</div>
   <div id="formModal"><div class="form-card" id="formCard"></div></div>
   <div id="typesModal"><div class="types-card" id="typesCard"></div></div>
+  
   <script>
-    // DARK MODE
+    // DARK MODE - Disabled for cyberpunk theme (always dark)
     function setDarkMode(state) {
-      if (state) {
-        document.body.classList.add('dark');
-        document.getElementById("darkModeBtn").textContent = "☀️";
-        localStorage.setItem('superb_darkmode','1');
-      } else {
-        document.body.classList.remove('dark');
-        document.getElementById("darkModeBtn").textContent = "🌙";
-        localStorage.setItem('superb_darkmode','0');
-      }
+      // Always dark for cyberpunk theme
+      document.body.classList.add('dark');
+      document.getElementById("darkModeBtn").textContent = "☀️";
     }
     document.getElementById("darkModeBtn").onclick = function() {
-      setDarkMode(!document.body.classList.contains('dark'));
+      // No toggle for cyberpunk theme
+      alert("Cyberpunk mode is always on!");
     };
-    if (localStorage.getItem('superb_darkmode') === '1') setDarkMode(true);
+    setDarkMode(true);
     
     // JSONBin Settings
     const JSONBIN_API = "https://api.jsonbin.io/v3/b/686e6c4d5f4bcf6c3afb1182";
     const JSONBIN_KEY = "$2a$10$BqM/s2f2kqZGoB5V14WtWOPOVO5/ccx/wZtBqmQsgeQqh6WMp42We";
     let ASSET_TYPES = [
-      "Laptop", "Desktop", "Monitor", "Printer", "Router", "Switch", "Scanner",
-      "Keyboard", "Mouse", "UPS", "Projector", "Tablet", "Phone", "Access Point",
-      "Server", "Docking Station", "Webcam", "Headset", "Speaker", "External HDD/SSD",
-      "Flash Drive", "Cables", "Adapter", "Other", "Tally"
+      "LAPTOP", "DESKTOP", "MONITOR", "PRINTER", "ROUTER", "SWITCH", "SCANNER",
+      "KEYBOARD", "MOUSE", "UPS", "PROJECTOR", "TABLET", "PHONE", "ACCESS POINT",
+      "SERVER", "DOCKING STATION", "WEBCAM", "HEADSET", "SPEAKER", "EXTERNAL DRIVE",
+      "FLASH DRIVE", "CABLES", "ADAPTER", "OTHER", "TALLY"
     ];
     const AREA_OPTIONS = [
       "BULK", "ONLINE", "RETAIL", "KIOSK RETAIL", "KIOSK BULK", "SILVERS",
@@ -687,13 +935,14 @@
         ...ALL_ASSETS.map(a => a.Type).filter(Boolean)
       ])].sort();
       const total = ALL_ASSETS.length;
-      sel.innerHTML = `<option value="All Types">All Types (${total})</option>` +
+      sel.innerHTML = `<option value="All Types">ALL TYPES (${total})</option>` +
         allTypes.map(t =>
           `<option value="${t}">${t} (${typeCounts[t]||0})</option>`
         ).join('');
       sel.value = CURRENT_TYPE;
     }
     
+    // Modified renderAssets function
     function renderAssets(search = "", type = "All Types", statusFilter = "all") {
       const box = document.getElementById("assetsBox");
       let filtered = ALL_ASSETS;
@@ -728,7 +977,7 @@
       const groupKeys = Object.keys(assetGroups).sort();
       
       if (groupKeys.length === 0) {
-        box.innerHTML = `<div style="color:#888;margin:20px 0;text-align:center">No assets found.</div>`;
+        box.innerHTML = `<div style="color:var(--neon-blue);margin:30px 0;text-align:center;text-shadow:var(--glow-blue);">NO ASSETS FOUND</div>`;
         return;
       }
       
@@ -738,49 +987,54 @@
         const firstItem = groupItems[0];
         const isGroupOpen = firstItem.open;
         
+        // Count faulty, reserved, and normal items in the group
         const faultyCount = groupItems.filter(item => item.Faulty === true).length;
         const reservedCount = groupItems.filter(item => item.Reserved === true).length;
         const normalCount = groupItems.filter(item => item.Faulty !== true && item.Reserved !== true).length;
         
         return `
         <li class="asset-card${isGroupOpen?" open":""}" data-name="${groupName}">
+          <div class="corner-accent corner-top-left"></div>
+          <div class="corner-accent corner-top-right"></div>
+          <div class="corner-accent corner-bottom-left"></div>
+          <div class="corner-accent corner-bottom-right"></div>
           <div class="asset-card-header">
             <span>${groupName}</span>
-            <div>
-              <span class="badge quantity-badge">${quantity}</span>
-              ${faultyCount > 0 ? `<span class="badge faulty-badge">Faulty: ${faultyCount}</span>` : ''}
-              ${reservedCount > 0 ? `<span class="badge reserved-badge">Reserved: ${reservedCount}</span>` : ''}
-              ${normalCount > 0 ? `<span class="badge">Normal: ${normalCount}</span>` : ''}
+             <div>
+                 <span class="badge quantity-badge">${quantity}</span>
+                ${faultyCount > 0 ? `<span class="badge faulty-badge">F:${faultyCount}</span>` : ''}
+                ${reservedCount > 0 ? `<span class="badge reserved-badge">R:${reservedCount}</span>` : ''}
+                ${normalCount > 0 ? `<span class="badge">N:${normalCount}</span>` : ''}
             </div>
             <span class="expand-icon">&#9654;</span>
           </div>
           <div class="asset-details">
-            <div><label>Type:</label> <span class="chip">${firstItem.Type || "-"}</span></div>
-            <div><label>Faulty:</label> ${firstItem.Faulty ? 'Yes' : 'No'}</div>
-            <div><label>Reserved:</label> ${firstItem.Reserved ? 'Yes' : 'No'}</div>
-            <div><label>Serial:</label> ${firstItem.Serial || "-"} </div>
-            <div><label>Area:</label> ${firstItem.Area || "-"} </div>
-            <div><label>Assigned:</label> ${firstItem.Assigned || "-"} </div>
-            <div><label>Notes:</label> ${firstItem.Notes || "-"} </div>
-            <div><em>Quantity in group: ${quantity}</em></div>
+            <div><label>TYPE:</label> <span class="chip">${firstItem.Type || "-"}</span></div>
+            <div><label>FAULTY:</label> ${firstItem.Faulty ? '<span style="color:var(--neon-pink);text-shadow:var(--glow-pink);">YES</span>' : '<span style="color:var(--neon-green);text-shadow:var(--glow-green);">NO</span>'}</div>
+            <div><label>RESERVED:</label> ${firstItem.Reserved ? '<span style="color:var(--neon-yellow);text-shadow:0 0 8px rgba(249, 240, 2, 0.7);">YES</span>' : '<span style="color:var(--neon-green);text-shadow:var(--glow-green);">NO</span>'}</div>
+            <div><label>SERIAL:</label> ${firstItem.Serial || "-"} </div>
+            <div><label>AREA:</label> ${firstItem.Area || "-"} </div>
+            <div><label>ASSIGNED:</label> ${firstItem.Assigned || "-"} </div>
+            <div><label>NOTES:</label> ${firstItem.Notes || "-"} </div>
+            <div><em style="color:var(--neon-blue);text-shadow:var(--glow-blue);">QUANTITY: ${quantity}</em></div>
             <div class="asset-actions">
-              <button class="btn" onclick="editAssetGroup('${groupName}')">Edit Group</button>
-              <button class="btn delete" onclick="deleteAssetGroup('${groupName}')">Delete Group</button>
+              <button class="btn" onclick="editAssetGroup('${groupName}')">EDIT GROUP</button>
+              <button class="btn delete" onclick="deleteAssetGroup('${groupName}')">DELETE GROUP</button>
             </div>
             <div style="margin-top: 15px;">
-              <label>Individual Items:</label>
+              <label style="color:var(--neon-purple);text-shadow:var(--glow-purple);">INDIVIDUAL ITEMS:</label>
               <ul class="individual-items-list">
                 ${groupItems.map((item, groupIndex) => {
                   const globalIndex = ALL_ASSETS.findIndex(a => a === item);
                   const serialDisplay = item.Serial ? ` (${item.Serial})` : '';
                   if (globalIndex === -1) {
                       console.error("Could not find global index for item:", item);
-                      return `<li class="individual-item" style="color: red;">Error: Item not found</li>`;
+                      return `<li class="individual-item" style="color: var(--neon-pink);">ERROR: ITEM NOT FOUND</li>`;
                   }
                   return `
                     <li class="individual-item">
-                      <span>Item ${groupIndex + 1}${serialDisplay}</span>
-                      <button class="btn" style="padding: 6px 12px; font-size: 0.95rem;" onclick="editSingleAsset(${globalIndex})">Edit</button>
+                      <span>ITEM ${groupIndex + 1}${serialDisplay}</span>
+                      <button class="btn" style="padding: 6px 12px; font-size: 0.9rem;" onclick="editSingleAsset(${globalIndex})">EDIT</button>
                     </li>
                   `;
                 }).join('')}
@@ -801,6 +1055,15 @@
           card.classList.toggle('open');
         };
       });
+      
+      // Add corner accents to all asset cards
+      document.querySelectorAll('.asset-card').forEach(card => {
+        ['top-left', 'top-right', 'bottom-left', 'bottom-right'].forEach(pos => {
+          const corner = document.createElement('div');
+          corner.className = `corner-accent corner-${pos}`;
+          card.appendChild(corner);
+        });
+      });
     }
     
     async function fetchAssets() {
@@ -813,10 +1076,10 @@
         ALL_ASSETS = data.record || [];
         if (!ALL_ASSETS.length) {
           ALL_ASSETS = [{
-            Name: "Sample Laptop",
-            Type: "Laptop",
+            Name: "SAMPLE LAPTOP",
+            Type: "LAPTOP",
             Serial: "SN123456",
-            Area: "Office",
+            Area: "OFFICE",
             Assigned: "",
             Notes: "",
             Faulty: false,
@@ -830,10 +1093,11 @@
           document.getElementById("statusFilter").value
         );
       } catch (e) {
-        document.getElementById("assetsBox").innerHTML = `<div style="color:#ff3333;margin:20px 0;text-align:center">Could not load data.<br>${e}</div>`;
+        document.getElementById("assetsBox").innerHTML = `<div style="color:var(--neon-pink);margin:30px 0;text-align:center;text-shadow:var(--glow-pink);">DATA LOAD ERROR<br>${e}</div>`;
       }
     }
     
+    // Modified saveAsset function to handle quantity
     async function saveAsset(asset, editingIdx, quantity = 1) {
       try {
         let updated = [...ALL_ASSETS];
@@ -852,12 +1116,13 @@
         });
         let result = await res.json();
         if (result && result.record) fetchAssets();
-        else alert("Save failed: " + (result.message || JSON.stringify(result)));
-      } catch (e) { alert("Save error: " + e); }
+        else alert("SAVE FAILED: " + (result.message || JSON.stringify(result)));
+      } catch (e) { alert("SAVE ERROR: " + e); }
     }
     
+    // New function to delete an entire group
     async function deleteAssetGroup(groupName) {
-       if (!confirm(`Delete ALL assets named "${groupName}"?`)) return;
+       if (!confirm(`DELETE ALL ASSETS NAMED "${groupName}"?`)) return;
        let updated = ALL_ASSETS.filter(a => (a.Name || "<i>Unnamed Asset</i>") !== groupName);
        try {
          let res = await fetch(JSONBIN_API, {
@@ -867,14 +1132,15 @@
          });
          let result = await res.json();
          if (result && result.record) fetchAssets();
-         else alert("Delete failed: " + (result.message || JSON.stringify(result)));
-       } catch (e) { alert("Delete error: " + e); }
+         else alert("DELETE FAILED: " + (result.message || JSON.stringify(result)));
+       } catch (e) { alert("DELETE ERROR: " + e); }
     }
     
+    // Function to show the group edit form
     function showGroupEditForm(groupName) {
         const groupItems = ALL_ASSETS.filter(a => (a.Name || "<i>Unnamed Asset</i>") === groupName);
         if (groupItems.length === 0) {
-            alert("No items found in this group.");
+            alert("NO ITEMS FOUND IN THIS GROUP");
             return;
         }
         const commonValues = getCommonGroupValues(groupItems);
@@ -885,54 +1151,61 @@
         
         let formHTML = `
             <form id="groupEditForm" autocomplete="off">
-                <h3 style="margin-top:0; text-align:center; text-shadow: 0 0 10px var(--neon-blue);">Edit Group: ${groupName}</h3>
-                <p style="text-align:center; margin-top:0; margin-bottom:15px;"><em>Editing ${itemCount} item(s)</em></p>
-                <label for="groupEditType" style="color: var(--neon-pink);">Type:</label>
-                <select name="Type" id="groupEditType" style="background: #0a0e1a88; border: 2px solid var(--neon-blue);">
-                    <option value="">(No Change)</option>
+                <h3>EDIT GROUP: ${groupName}</h3>
+                <p style="text-align:center; margin-top:0; margin-bottom:15px;color:var(--neon-blue);text-shadow:var(--glow-blue);"><em>EDITING ${itemCount} ITEM(S)</em></p>
+                <label for="groupEditType">TYPE:</label>
+                <select name="Type" id="groupEditType">
+                    <option value="">(NO CHANGE)</option>
                     ${ASSET_TYPES.map(t =>
                         `<option value="${t}" ${commonValues.Type === t ? "selected" : ""}>${t}</option>`
                     ).join("")}
                 </select>
-                <label for="groupEditArea" style="color: var(--neon-pink);">Area:</label>
-                <select name="Area" id="groupEditArea" style="background: #0a0e1a88; border: 2px solid var(--neon-blue);">
-                    <option value="">(No Change)</option>
-                    <option value="" disabled>Select Area</option>
+                <label for="groupEditArea">AREA:</label>
+                <select name="Area" id="groupEditArea">
+                    <option value="">(NO CHANGE)</option>
+                    <option value="" disabled>SELECT AREA</option>
                     ${AREA_OPTIONS.map(opt => `<option value="${opt}" ${commonValues.Area === opt ? "selected" : ""}>${opt}</option>`).join("")}
                 </select>
-                <label for="groupEditAssigned" style="color: var(--neon-pink);">Assigned To:</label>
-                <input type="text" name="Assigned" id="groupEditAssigned" placeholder="Assigned To" value="${commonValues.Assigned || ''}" style="background: #0a0e1a88; border: 2px solid var(--neon-blue);">
-                <label for="groupEditNotes" style="color: var(--neon-pink);">Notes:</label>
-                <textarea name="Notes" id="groupEditNotes" placeholder="Notes" style="min-height:48px; background: #0a0e1a88; border: 2px solid var(--neon-blue);">${commonValues.Notes || ''}</textarea>
+                <label for="groupEditAssigned">ASSIGNED TO:</label>
+                <input type="text" name="Assigned" id="groupEditAssigned" placeholder="ASSIGNED TO" value="${commonValues.Assigned || ''}">
+                <label for="groupEditNotes">NOTES:</label>
+                <textarea name="Notes" id="groupEditNotes" placeholder="NOTES" style="min-height:48px">${commonValues.Notes || ''}</textarea>
                 <div style="display:flex; flex-wrap:wrap; gap:15px; margin-top:10px;">
-                    <label style="display:flex; align-items:center; color: var(--neon-pink);">
+                    <label style="display:flex;align-items:center;color:var(--neon-pink);text-shadow:var(--glow-pink);">
                         <input type="checkbox" name="Faulty" id="groupEditFaultyCheckbox" ${commonValues.Faulty === true ? "checked" : ""} style="margin-right:8px;">
-                        Set Faulty Status for All
+                        SET FAULTY STATUS
                     </label>
-                    <select name="FaultyAction" id="groupEditFaultyAction" style="margin-left: 0px; margin-top: 5px; background: #0a0e1a88; border: 2px solid var(--neon-blue);">
-                        <option value="nochange">No Change</option>
-                        <option value="setTrue">Set to Faulty</option>
-                        <option value="setFalse">Set to Not Faulty</option>
+                    <select name="FaultyAction" id="groupEditFaultyAction" style="margin-left: 0px; margin-top: 5px;">
+                        <option value="nochange">NO CHANGE</option>
+                        <option value="setTrue">SET TO FAULTY</option>
+                        <option value="setFalse">SET TO NOT FAULTY</option>
                     </select>
                 </div>
                 <div style="display:flex; flex-wrap:wrap; gap:15px; margin-top:10px;">
-                    <label style="display:flex; align-items:center; color: var(--neon-pink);">
+                    <label style="display:flex;align-items:center;color:var(--neon-yellow);text-shadow:0 0 8px rgba(249, 240, 2, 0.7);">
                         <input type="checkbox" name="Reserved" id="groupEditReservedCheckbox" ${commonValues.Reserved === true ? "checked" : ""} style="margin-right:8px;">
-                        Set Reserved Status for All
+                        SET RESERVED STATUS
                     </label>
-                    <select name="ReservedAction" id="groupEditReservedAction" style="margin-left: 0px; margin-top: 5px; background: #0a0e1a88; border: 2px solid var(--neon-blue);">
-                        <option value="nochange">No Change</option>
-                        <option value="setTrue">Set to Reserved</option>
-                        <option value="setFalse">Set to Not Reserved</option>
+                    <select name="ReservedAction" id="groupEditReservedAction" style="margin-left: 0px; margin-top: 5px;">
+                        <option value="nochange">NO CHANGE</option>
+                        <option value="setTrue">SET TO RESERVED</option>
+                        <option value="setFalse">SET TO NOT RESERVED</option>
                     </select>
                 </div>
-                <div style="display:flex; gap:12px; justify-content:flex-end; margin-top:20px;">
-                    <button class="btn" type="submit" style="flex:1;">Update Group</button>
-                    <button class="btn cancel" type="button" id="groupEditCancelBtn" style="flex:1;">Cancel</button>
+                <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:20px;">
+                    <button class="btn" type="submit" style="flex:1;">UPDATE GROUP</button>
+                    <button class="btn cancel" type="button" id="groupEditCancelBtn" style="flex:1;">CANCEL</button>
                 </div>
             </form>
         `;
         formCard.innerHTML = formHTML;
+        
+        // Add corner accents
+        ['top-left', 'top-right', 'bottom-left', 'bottom-right'].forEach(pos => {
+          const corner = document.createElement('div');
+          corner.className = `corner-accent corner-${pos}`;
+          formCard.appendChild(corner);
+        });
         
         document.getElementById("groupEditForm").onsubmit = function(e) {
             e.preventDefault();
@@ -977,6 +1250,7 @@
         };
     }
     
+    // Helper function to save the updated assets list
     async function saveUpdatedAssets(updatedAssetsArray) {
         try {
             let res = await fetch(JSONBIN_API, {
@@ -997,13 +1271,14 @@
                     document.getElementById("statusFilter").value
                 );
             } else {
-                alert("Update failed: " + (result.message || JSON.stringify(result)));
+                alert("UPDATE FAILED: " + (result.message || JSON.stringify(result)));
             }
         } catch (e) {
-            alert("Update error: " + e);
+            alert("UPDATE ERROR: " + e);
         }
     }
     
+    // Modified showForm function to include quantity input and Reserved checkbox
     function showForm(asset = {}, editingIdx = null) {
       const modal = document.getElementById("formModal");
       const formCard = document.getElementById("formCard");
@@ -1011,43 +1286,52 @@
       modal.classList.add("show");
       formCard.innerHTML = `
         <form id="assetForm" autocomplete="off">
-          <input type="text" name="Name" required placeholder="Asset Name" value="${asset.Name||""}" style="background: #0a0e1a88; border: 2px solid var(--neon-blue);">
-          <select name="Type" style="background: #0a0e1a88; border: 2px solid var(--neon-blue);">${ASSET_TYPES.map(t =>
+          <h3>${isEditing ? 'EDIT' : 'ADD'} ASSET</h3>
+          <input type="text" name="Name" required placeholder="ASSET NAME" value="${asset.Name||""}">
+          <select name="Type">${ASSET_TYPES.map(t =>
             `<option ${t===(asset.Type||ASSET_TYPES[0]) ? "selected":""}>${t}</option>`
           ).join("")}</select>
-          <div style="display:flex;gap:8px;">
-            <input type="text" style="flex:1;" id="serialInput" name="Serial" required placeholder="Serial Number" value="${asset.Serial||""}" style="background: #0a0e1a88; border: 2px solid var(--neon-blue);">
-            <button type="button" class="btn scan" id="scanBarcodeBtn" title="Scan barcode">Scan</button>
+          <div style="display:flex;gap:7px;">
+            <input type="text" style="flex:1;" id="serialInput" name="Serial" required placeholder="SERIAL NUMBER" value="${asset.Serial||""}">
+            <button type="button" class="btn scan" id="scanBarcodeBtn" title="Scan barcode">SCAN</button>
           </div>
-          <select name="Area" required style="background: #0a0e1a88; border: 2px solid var(--neon-blue);">
-            <option value="" disabled ${asset.Area ? "" : "selected"}>Select Area</option>
+          <select name="Area" required>
+            <option value="" disabled ${asset.Area ? "" : "selected"}>SELECT AREA</option>
             ${AREA_OPTIONS.map(opt => `<option value="${opt}" ${asset.Area === opt ? "selected" : ""}>${opt}</option>`).join("")}
           </select>
-          <input type="text" name="Assigned" placeholder="Assigned To" value="${asset.Assigned||""}" style="background: #0a0e1a88; border: 2px solid var(--neon-blue);">
-          <textarea name="Notes" placeholder="Notes" style="min-height:48px; background: #0a0e1a88; border: 2px solid var(--neon-blue);">${asset.Notes||""}</textarea>
+          <input type="text" name="Assigned" placeholder="ASSIGNED TO" value="${asset.Assigned||""}">
+          <textarea name="Notes" placeholder="NOTES" style="min-height:48px">${asset.Notes||""}</textarea>
           <div style="display:flex; flex-wrap:wrap; gap:15px; margin-top:6px;">
-              <label style="display:flex; align-items:center; color: var(--neon-pink);">
+              <label style="display:flex;align-items:center;color:var(--neon-pink);text-shadow:var(--glow-pink);">
                 <input type="checkbox" name="Faulty" ${asset.Faulty ? "checked" : ""} style="margin-right:8px;">
-                Faulty
+                FAULTY
               </label>
-              <label style="display:flex; align-items:center; color: var(--neon-pink);">
+              <label style="display:flex;align-items:center;color:var(--neon-yellow);text-shadow:0 0 8px rgba(249, 240, 2, 0.7);">
                 <input type="checkbox" name="Reserved" ${asset.Reserved ? "checked" : ""} style="margin-right:8px;">
-                Reserved
+                RESERVED
               </label>
           </div>
           ${!isEditing ? `
           <div class="quantity-input-group">
-            <label for="quantityInput" style="color: var(--neon-pink);">Quantity:</label>
-            <input type="number" id="quantityInput" name="quantity" min="1" value="1" required style="background: #0a0e1a88; border: 2px solid var(--neon-blue);">
+            <label for="quantityInput" style="color:var(--neon-blue);text-shadow:var(--glow-blue);">QUANTITY:</label>
+            <input type="number" id="quantityInput" name="quantity" min="1" value="1" required>
           </div>
           ` : ''}
-          <div style="display:flex; gap:12px; justify-content:flex-end; margin-top:12px;">
-            <button class="btn" type="submit" style="flex:1;">${isEditing ? 'Update' : 'Add'} Asset</button>
-            <button class="btn cancel" type="button" id="cancelBtn" style="flex:1;">Cancel</button>
+          <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:12px;">
+            <button class="btn" type="submit" style="flex:1;">${isEditing ? 'UPDATE' : 'ADD'} ASSET</button>
+            <button class="btn cancel" type="button" id="cancelBtn" style="flex:1;">CANCEL</button>
           </div>
         </form>
         <div id="scanner-modal-root"></div>
       `;
+      
+      // Add corner accents
+      ['top-left', 'top-right', 'bottom-left', 'bottom-right'].forEach(pos => {
+        const corner = document.createElement('div');
+        corner.className = `corner-accent corner-${pos}`;
+        formCard.appendChild(corner);
+      });
+      
       document.getElementById("assetForm").onsubmit = function(e) {
         e.preventDefault();
         const form = e.target;
@@ -1075,8 +1359,8 @@
       modal.innerHTML = `
         <div>
           <video id="barcodeVideo" autoplay></video>
-          <div id="scanner-status">Initializing camera...</div>
-          <button id="scanner-close">Cancel</button>
+          <div id="scanner-status">INITIALIZING CAMERA...</div>
+          <button id="scanner-close">CANCEL SCAN</button>
         </div>
       `;
       document.body.appendChild(modal);
@@ -1098,40 +1382,48 @@
           let deviceId = backCam ? backCam.deviceId : videoInputDevices[0]?.deviceId;
           if (!deviceId && videoInputDevices.length) deviceId = videoInputDevices[0].deviceId;
           if (!deviceId) {
-            statusElem.textContent = "No camera found!";
+            statusElem.textContent = "NO CAMERA FOUND!";
             return;
           }
           codeReader.decodeFromVideoDevice(deviceId, videoElem, (result, err) => {
             if (result) {
               inputElem.value = result.text;
-              statusElem.textContent = "Scanned: " + result.text;
+              statusElem.textContent = "SCANNED: " + result.text;
+              statusElem.style.color = "var(--neon-green)";
+              statusElem.style.textShadow = "var(--glow-green)";
               setTimeout(stopScan, 900);
             } else if (err && !(err instanceof ZXing.NotFoundException)) {
-              statusElem.textContent = "Error: " + err;
+              statusElem.textContent = "ERROR: " + err;
+              statusElem.style.color = "var(--neon-pink)";
+              statusElem.style.textShadow = "var(--glow-pink)";
             }
           });
         })
         .catch(e => {
-          statusElem.textContent = "Camera error: " + e;
+          statusElem.textContent = "CAMERA ERROR: " + e;
+          statusElem.style.color = "var(--neon-pink)";
+          statusElem.style.textShadow = "var(--glow-pink)";
         });
     }
     
+    // Function to edit a single asset by its global index
     function editSingleAsset(globalIndex) {
         if (globalIndex >= 0 && globalIndex < ALL_ASSETS.length) {
             const assetToEdit = ALL_ASSETS[globalIndex];
             showForm(assetToEdit, globalIndex);
         } else {
-            alert("Error: Invalid asset index.");
+            alert("ERROR: INVALID ASSET INDEX");
         }
     }
     
+    // Function to show asset type management modal
     function showTypeManagement() {
       const modal = document.getElementById("typesModal");
       const card = document.getElementById("typesCard");
       modal.classList.add("show");
       
       let html = `
-        <h3 style="margin-top:0; text-align:center; text-shadow: 0 0 10px var(--neon-blue);">Manage Asset Types</h3>
+        <h3>MANAGE ASSET TYPES</h3>
         <div id="typesList" style="max-height: 60vh; overflow-y: auto; margin-bottom: 20px;">
           ${ASSET_TYPES.map((type, index) => `
             <div class="type-item" data-index="${index}">
@@ -1143,14 +1435,22 @@
             </div>
           `).join('')}
         </div>
-        <div style="display:flex; gap:12px; justify-content:flex-end;">
-          <button class="btn" id="addTypeField" style="flex:1;">Add New Type</button>
-          <button class="btn cancel" id="closeTypesModal" style="flex:1;">Close</button>
+        <div style="display:flex;gap:10px;justify-content:flex-end;">
+          <button class="btn" id="addTypeField" style="flex:1;">ADD NEW TYPE</button>
+          <button class="btn cancel" id="closeTypesModal" style="flex:1;">CLOSE</button>
         </div>
       `;
       
       card.innerHTML = html;
       
+      // Add corner accents
+      ['top-left', 'top-right', 'bottom-left', 'bottom-right'].forEach(pos => {
+        const corner = document.createElement('div');
+        corner.className = `corner-accent corner-${pos}`;
+        card.appendChild(corner);
+      });
+      
+      // Add event listeners for type management
       document.querySelectorAll('.update-type').forEach(btn => {
         btn.addEventListener('click', function() {
           const item = this.closest('.type-item');
@@ -1160,27 +1460,31 @@
           const originalName = input.dataset.original;
           
           if (!newName) {
-            alert("Type name cannot be empty!");
+            alert("TYPE NAME CANNOT BE EMPTY!");
             return;
           }
           
           if (newName !== originalName) {
+            // Check if new name already exists
             if (ASSET_TYPES.includes(newName)) {
-              alert(`Asset type "${newName}" already exists!`);
+              alert(`ASSET TYPE "${newName}" ALREADY EXISTS!`);
               return;
             }
             
+            // Update the type in the list
             ASSET_TYPES[index] = newName;
             input.dataset.original = newName;
             
+            // Update assets with this type
             ALL_ASSETS.forEach(asset => {
               if (asset.Type === originalName) {
                 asset.Type = newName;
               }
             });
             
+            // Save and refresh
             saveUpdatedAssets(ALL_ASSETS);
-            alert(`Asset type updated from "${originalName}" to "${newName}"`);
+            alert(`ASSET TYPE UPDATED FROM "${originalName}" TO "${newName}"`);
           }
         });
       });
@@ -1191,22 +1495,26 @@
           const index = parseInt(item.dataset.index);
           const typeName = ASSET_TYPES[index];
           
+          // Check if any assets use this type
           const assetsUsingType = ALL_ASSETS.filter(a => a.Type === typeName);
           
           if (assetsUsingType.length > 0) {
-            if (!confirm(`There are ${assetsUsingType.length} assets using the type "${typeName}". Deleting this type will reset these assets to "Other". Continue?`)) {
+            if (!confirm(`THERE ARE ${assetsUsingType.length} ASSETS USING THE TYPE "${typeName}".\nDELETING THIS TYPE WILL RESET THESE ASSETS TO "OTHER".\nCONTINUE?`)) {
               return;
             }
             
+            // Reset assets to "Other" type
             assetsUsingType.forEach(asset => {
-              asset.Type = "Other";
+              asset.Type = "OTHER";
             });
           }
           
+          // Remove from ASSET_TYPES
           ASSET_TYPES.splice(index, 1);
           
+          // Save and refresh
           saveUpdatedAssets(ALL_ASSETS);
-          showTypeManagement();
+          showTypeManagement(); // Refresh the modal
         });
       });
       
@@ -1217,7 +1525,7 @@
         newItem.className = 'type-item';
         newItem.dataset.index = newIndex;
         newItem.innerHTML = `
-          <input type="text" class="type-input" placeholder="New type name" data-original="">
+          <input type="text" class="type-input" placeholder="NEW TYPE NAME" data-original="">
           <div class="type-actions">
             <button class="btn type-btn update-type" title="Add Type">💾</button>
             <button class="btn delete type-btn delete-type" title="Delete Type">🗑️</button>
@@ -1225,31 +1533,35 @@
         `;
         newList.appendChild(newItem);
         
+        // Add event listeners to the new item
         newItem.querySelector('.update-type').addEventListener('click', function() {
           const input = newItem.querySelector('.type-input');
           const newName = input.value.trim();
           
           if (!newName) {
-            alert("Type name cannot be empty!");
+            alert("TYPE NAME CANNOT BE EMPTY!");
             return;
           }
           
           if (ASSET_TYPES.includes(newName)) {
-            alert(`Asset type "${newName}" already exists!`);
+            alert(`ASSET TYPE "${newName}" ALREADY EXISTS!`);
             return;
           }
           
+          // Add to ASSET_TYPES
           ASSET_TYPES.push(newName);
           input.dataset.original = newName;
           
+          // Save and refresh
           saveUpdatedAssets(ALL_ASSETS);
-          showTypeManagement();
+          showTypeManagement(); // Refresh the modal
         });
         
         newItem.querySelector('.delete-type').addEventListener('click', function() {
           newItem.remove();
         });
         
+        // Focus on the new input
         newItem.querySelector('.type-input').focus();
       });
       
@@ -1258,24 +1570,24 @@
       });
     }
     
+    // Update the global reference to the edit functions
     window.editAssetGroup = showGroupEditForm;
     window.editSingleAsset = editSingleAsset;
     window.deleteAssetGroup = deleteAssetGroup;
     
     document.getElementById("exportBtn").onclick = function() {
-      if (!ALL_ASSETS.length) return alert("No assets to export.");
+      if (!ALL_ASSETS.length) return alert("NO ASSETS TO EXPORT");
       const csv = [
-        ["Name","Type","Serial","Area","Assigned","Notes","Faulty","Reserved"].join(","),
+        ["Name","Type","Serial","Area","Assigned","Notes","Faulty", "Reserved"].join(","),
         ...ALL_ASSETS.map(a =>
-          [a.Name, a.Type, a.Serial, a.Area, a.Assigned, a.Notes, a.Faulty ? "Yes" : "No", a.Reserved ? "Yes" : "No"]
-            .map(x => `"${(x || "").replace(/"/g, '""')}"`).join(",")
+          [a.Name,a.Type,a.Serial,a.Area,a.Assigned,a.Notes,a.Faulty ? "Yes" : "No", a.Reserved ? "Yes" : "No"]
+            .map(x => `"${(x||"").replace(/"/g,'""')}"`).join(",")
         )
       ].join("\n");
       const blob = new Blob([csv], { type: "text/csv" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
-      a.href = url;
-      a.download = "Superb_IT_Assets.csv";
+      a.href = url; a.download = "CYBER_ASSETS_" + new Date().toISOString().slice(0,10) + ".csv";
       a.click();
       URL.revokeObjectURL(url);
     };
@@ -1283,20 +1595,55 @@
     document.getElementById("pdfBtn").onclick = function() {
       const counts = getTypeCounts();
       const doc = new window.jspdf.jsPDF();
+      
+      // Add cyberpunk style background
+      doc.setFillColor(13, 2, 33);
+      doc.rect(0, 0, doc.internal.pageSize.getWidth(), doc.internal.pageSize.getHeight(), 'F');
+      
+      // Add title
+      doc.setTextColor(5, 217, 232);
       doc.setFont("helvetica", "bold");
-      doc.setFontSize(18);
-      doc.setTextColor(0, 240, 255);
-      doc.text("Asset Types & Quantities", 14, 18);
+      doc.setFontSize(22);
+      doc.text("CYBER ASSET INVENTORY", 105, 20, null, null, "center");
+      
+      // Add subtitle
+      doc.setTextColor(255, 42, 109);
       doc.setFontSize(12);
-      doc.setTextColor(255, 255, 255);
-      let y = 32;
+      doc.text("ASSET TYPES & QUANTITIES", 105, 30, null, null, "center");
+      
+      // Add date
+      doc.setTextColor(139, 155, 180);
+      doc.setFontSize(10);
+      doc.text(new Date().toLocaleDateString(), 105, 37, null, null, "center");
+      
+      // Add grid lines
+      doc.setDrawColor(5, 217, 232, 50);
+      for (let i = 0; i < doc.internal.pageSize.getWidth(); i += 20) {
+        doc.line(i, 40, i, doc.internal.pageSize.getHeight());
+      }
+      
+      // Add asset types
+      doc.setTextColor(209, 247, 255);
+      doc.setFontSize(14);
+      let y = 50;
       Object.keys(counts).sort().forEach((type, idx) => {
-        doc.text(`${type}:`, 22, y + idx * 9);
-        doc.text(`${counts[type]}`, 132, y + idx * 9, {align:'right'});
+        doc.setTextColor(5, 217, 232);
+        doc.text(`${type}:`, 30, y + idx * 10);
+        doc.setTextColor(0, 255, 157);
+        doc.text(`${counts[type]}`, 180, y + idx * 10, {align:'right'});
       });
-      doc.setFontSize(11);
-      doc.text(`Total assets: ${ALL_ASSETS.length}`, 14, y + Object.keys(counts).length * 9 + 10);
-      doc.save("Asset_Types_Quantities.pdf");
+      
+      // Add total
+      doc.setTextColor(255, 42, 109);
+      doc.setFontSize(16);
+      doc.text(`TOTAL ASSETS: ${ALL_ASSETS.length}`, 105, y + Object.keys(counts).length * 10 + 15, null, null, "center");
+      
+      // Add footer
+      doc.setTextColor(139, 155, 180);
+      doc.setFontSize(8);
+      doc.text("CYBER SYSTEMS INVENTORY REPORT", 105, doc.internal.pageSize.getHeight() - 10, null, null, "center");
+      
+      doc.save("CYBER_ASSETS_" + new Date().toISOString().slice(0,10) + ".pdf");
     };
     
     document.getElementById("addFab").onclick = function() { showForm(); };
