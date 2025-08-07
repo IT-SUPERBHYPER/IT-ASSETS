@@ -5,8 +5,8 @@
   <title>Superb IT Asset Manager</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Orbitron:wght@700&display=swap" rel="stylesheet">
-  <script src=" https://unpkg.com/ @zxing/library@0.19.2/umd/index.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js "></script>
+  <script src="https://unpkg.com/@zxing/library@0.19.2/umd/index.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <style>
     :root {
       --superb-blue: #183d5c;
@@ -16,6 +16,10 @@
       --text-main: #183d5c;
       --chip-bg: linear-gradient(90deg,#1ca4bb 60%,#25b3b3 100%);
       --chip-txt: #fff;
+      /* New color for reserved badge */
+      --reserved-color: #ff9800;
+      /* Color for quantity badge */
+      --quantity-color: #4caf50;
     }
     body.dark {
       --superb-blue: #f6fafd;
@@ -25,6 +29,9 @@
       --text-main: #f6fafd;
       --chip-bg: linear-gradient(90deg,#185a7d 60%,#1ca4bb 100%);
       --chip-txt: #eaffff;
+      /* Adjust reserved color for dark mode if needed */
+      --reserved-color: #ffb74d;
+      --quantity-color: #66bb6a;
     }
     html, body {
       min-height: 100vh;
@@ -90,6 +97,7 @@
       z-index: 20;
       border-bottom: 1px solid #eee;
       align-items: center;
+      flex-wrap: wrap;
     }
     body.dark .search-bar { border-bottom: 1px solid #28344a; }
     .search-bar input, .search-bar select {
@@ -98,8 +106,8 @@
       border: 1.4px solid var(--superb-accent);
       border-radius: 8px;
       outline: none;
-      width: 100%;
-      max-width: 180px;
+      flex: 1;
+      min-width: 120px;
       background: #f6fafd;
       color: var(--text-main);
       transition: background .2s, color .2s, border .2s;
@@ -108,6 +116,9 @@
       background: #222f40;
       color: #eaffff;
       border-color: #1ca4bb88;
+    }
+    .search-bar .btn, .search-bar .download-pdf-btn {
+        flex: 0 0 auto;
     }
     .download-pdf-btn {
       background: none;
@@ -139,6 +150,22 @@
       background: #e04d3c !important;
     }
     body.dark .faulty-badge { background: #d93424; }
+    .reserved-badge {
+      background: var(--reserved-color) !important;
+      color: #fff;
+    }
+    body.dark .reserved-badge {
+        background: var(--reserved-color) !important;
+        color: #222;
+    }
+    .quantity-badge {
+      background: var(--quantity-color) !important;
+      color: #fff;
+    }
+    body.dark .quantity-badge {
+        background: var(--quantity-color) !important;
+        color: #222;
+    }
     .asset-list {
       list-style: none;
       padding: 0;
@@ -242,14 +269,14 @@
       transition: box-shadow .13s, background .13s;
     }
     .fab:active { background: #11718d; }
-    #formModal {
+    #formModal, #typesModal {
       position: fixed; left: 0; top: 0; right: 0; bottom: 0;
       background: rgba(24,61,92,0.93);
       display: none; align-items: center; justify-content: center;
       z-index: 2000;
     }
-    #formModal.show { display: flex;}
-    .form-card {
+    #formModal.show, #typesModal.show { display: flex;}
+    .form-card, .types-card {
       background: var(--superb-card);
       border-radius: 15px;
       padding: 22px 16px 15px 16px;
@@ -258,7 +285,7 @@
       color: var(--text-main);
       animation: fadein .28s;
     }
-    .form-card form {
+    .form-card form, .types-card form {
       display: flex;
       flex-direction: column;
       gap: 13px;
@@ -269,7 +296,14 @@
     body.dark .footer { color: #34f9e0;}
     @media (min-width: 700px) {
       .fab { width: 74px; height: 74px; font-size: 2.9rem; right: 44px; bottom: 40px;}
-      .form-card { min-width: 420px; }
+      .form-card, .types-card { min-width: 420px; }
+      .search-bar {
+          flex-wrap: nowrap;
+      }
+      .search-bar input, .search-bar select {
+          min-width: auto;
+          max-width: 180px;
+      }
     }
     @keyframes fadein {
       from { opacity: 0; transform: translateY(12px);}
@@ -307,6 +341,64 @@
       letter-spacing: 0.2px;
       text-shadow: 0 2px 20px #1791b3b8;
     }
+    .quantity-input-group {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .quantity-input-group label {
+        font-weight: 600;
+        margin: 0;
+    }
+    .quantity-input-group input {
+        width: 80px;
+        padding: 8px;
+        text-align: center;
+    }
+    .individual-items-list {
+        list-style: none;
+        padding-left: 0;
+        max-height: 200px;
+        overflow-y: auto;
+        border-top: 1px solid #ccc;
+        padding-top: 8px;
+        margin-top: 5px;
+    }
+    .individual-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 5px 0;
+        border-bottom: 1px solid #eee;
+    }
+    /* Type management styles */
+    .type-management {
+      display: flex;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .type-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 0;
+      border-bottom: 1px solid #eee;
+    }
+    body.dark .type-item {
+      border-bottom: 1px solid #28344a;
+    }
+    .type-actions {
+      display: flex;
+      gap: 5px;
+    }
+    .type-btn {
+      padding: 5px 10px;
+      font-size: 0.9rem;
+    }
+    .type-input {
+      flex: 1;
+      margin-right: 10px;
+    }
   </style>
 </head>
 <body>
@@ -316,10 +408,16 @@
   </header>
   <div class="search-bar">
     <input type="search" id="searchInput" placeholder="Search assets...">
-    <select id="typeFilter"></select>
-    <select id="faultyFilter">
-      <option value="All">All Assets</option>
-      <option value="FaultyOnly">Faulty Only</option>
+    <div style="display: flex; align-items: center; flex: 1; min-width: 120px;">
+      <select id="typeFilter"></select>
+      <button class="btn" id="manageTypesBtn" style="margin-left: 5px; padding: 10px 12px;" title="Manage Asset Types">⚙️</button>
+    </div>
+    <select id="statusFilter">
+      <option value="all">All Assets</option>
+      <option value="faulty">Faulty Only</option>
+      <option value="reserved">Reserved Only</option>
+      <option value="both">Both Faulty & Reserved</option>
+      <option value="neither">Neither Faulty nor Reserved</option>
     </select>
     <button class="btn" id="exportBtn" style="padding:10px 18px;">Export CSV</button>
     <button class="download-pdf-btn" id="pdfBtn" title="Download Type Quantities as PDF">
@@ -330,6 +428,7 @@
   <button class="fab" id="addFab" title="Add Asset">+</button>
   <div class="footer">&copy; 2024 Superb Hyper. Data stored securely in JSONBin.</div>
   <div id="formModal"><div class="form-card" id="formCard"></div></div>
+  <div id="typesModal"><div class="types-card" id="typesCard"></div></div>
   <script>
     // DARK MODE
     function setDarkMode(state) {
@@ -347,22 +446,60 @@
       setDarkMode(!document.body.classList.contains('dark'));
     };
     if (localStorage.getItem('superb_darkmode') === '1') setDarkMode(true);
+    
     // JSONBin Settings
     const JSONBIN_API = "https://api.jsonbin.io/v3/b/686e6c4d5f4bcf6c3afb1182";
     const JSONBIN_KEY = "$2a$10$BqM/s2f2kqZGoB5V14WtWOPOVO5/ccx/wZtBqmQsgeQqh6WMp42We";
-    const ASSET_TYPES = [
+    let ASSET_TYPES = [
       "Laptop", "Desktop", "Monitor", "Printer", "Router", "Switch", "Scanner",
       "Keyboard", "Mouse", "UPS", "Projector", "Tablet", "Phone", "Access Point",
       "Server", "Docking Station", "Webcam", "Headset", "Speaker", "External HDD/SSD",
       "Flash Drive", "Cables", "Adapter", "Other", "Tally"
     ];
     const AREA_OPTIONS = [
-      "BULK", "ONLINE", "RETAIL", "KIOSK RETAIL", "KIOSK BULK", "SILVERS",  
+      "BULK", "ONLINE", "RETAIL", "KIOSK RETAIL", "KIOSK BULK", "SILVERS",
       "PRICING", "RECEIVING", "BARCODING", "DAMAGES", "OFFICE",
       "CASH OFFICE", "SPARE", "TESTING", "DUMPING", "STORAGE"
     ];
     let ALL_ASSETS = [];
     let CURRENT_TYPE = "All Types";
+    
+    // Function to group assets by Name
+    function groupAssets(assets) {
+        const groups = {};
+        assets.forEach(asset => {
+            const key = asset.Name || "<i>Unnamed Asset</i>";
+            if (!groups[key]) {
+                groups[key] = [];
+            }
+            groups[key].push(asset);
+        });
+        return groups;
+    }
+    
+    // Helper function to find common values in a group
+    function getCommonGroupValues(groupItems) {
+        if (!groupItems || groupItems.length === 0) return {};
+        const firstItem = groupItems[0];
+        let commonValues = {
+            Type: firstItem.Type,
+            Area: firstItem.Area,
+            Assigned: firstItem.Assigned,
+            Notes: firstItem.Notes,
+            Faulty: firstItem.Faulty,
+            Reserved: firstItem.Reserved
+        };
+        for (let i = 1; i < groupItems.length; i++) {
+            const item = groupItems[i];
+            for (const key in commonValues) {
+                if (commonValues[key] !== item[key]) {
+                    commonValues[key] = undefined;
+                }
+            }
+        }
+        return commonValues;
+    }
+    
     function getTypeCounts() {
       const counts = {};
       for (const a of ALL_ASSETS) {
@@ -371,6 +508,7 @@
       }
       return counts;
     }
+    
     function populateTypeFilter() {
       const sel = document.getElementById("typeFilter");
       const typeCounts = getTypeCounts();
@@ -385,6 +523,120 @@
         ).join('');
       sel.value = CURRENT_TYPE;
     }
+    
+    // Modified renderAssets function
+    function renderAssets(search = "", type = "All Types", statusFilter = "all") {
+      const box = document.getElementById("assetsBox");
+      let filtered = ALL_ASSETS;
+      
+      if (search) {
+        filtered = filtered.filter(a =>
+          (a.Name + (a.Type||"") + (a.Serial||"") + (a.Area||"") + (a.Assigned||"") + (a.Notes||""))
+            .toLowerCase().includes(search.toLowerCase())
+        );
+      }
+      
+      if (type && type !== "All Types") {
+        filtered = filtered.filter(a => (a.Type||"").toLowerCase() === type.toLowerCase());
+      }
+      
+      switch (statusFilter) {
+        case "faulty":
+          filtered = filtered.filter(a => a.Faulty === true);
+          break;
+        case "reserved":
+          filtered = filtered.filter(a => a.Reserved === true);
+          break;
+        case "both":
+          filtered = filtered.filter(a => a.Faulty === true && a.Reserved === true);
+          break;
+        case "neither":
+          filtered = filtered.filter(a => a.Faulty !== true && a.Reserved !== true);
+          break;
+      }
+      
+      const assetGroups = groupAssets(filtered);
+      const groupKeys = Object.keys(assetGroups).sort();
+      
+      if (groupKeys.length === 0) {
+        box.innerHTML = `<div style="color:#888;margin:20px 0;text-align:center">No assets found.</div>`;
+        return;
+      }
+      
+   box.innerHTML = groupKeys.map(groupName => {
+        const groupItems = assetGroups[groupName];
+        const quantity = groupItems.length;
+        const firstItem = groupItems[0];
+        const isGroupOpen = firstItem.open;
+        
+        // Count faulty, reserved, and normal items in the group
+        const faultyCount = groupItems.filter(item => item.Faulty === true).length;
+        const reservedCount = groupItems.filter(item => item.Reserved === true).length;
+        const normalCount = groupItems.filter(item => item.Faulty !== true && item.Reserved !== true).length;
+        
+        return `
+        <li class="asset-card${isGroupOpen?" open":""}" data-name="${groupName}">
+          <div class="asset-card-header">
+            <span>${groupName}</span>
+             <div>
+                 <span class="badge quantity-badge">${quantity}</span>
+                ${faultyCount > 0 ? `<span class="badge faulty-badge">Faulty: ${faultyCount}</span>` : ''}
+                ${reservedCount > 0 ? `<span class="badge reserved-badge">Reserved: ${reservedCount}</span>` : ''}
+                ${normalCount > 0 ? `<span class="badge">Normal: ${normalCount}</span>` : ''}
+            </div>
+            <span class="expand-icon">&#9654;</span>
+          </div>
+            <span class="expand-icon">&#9654;</span>
+          </div>
+          <div class="asset-details">
+            <div><label>Type:</label> <span class="chip">${firstItem.Type || "-"}</span></div>
+            <div><label>Faulty:</label> ${firstItem.Faulty ? 'Yes' : 'No'}</div>
+            <div><label>Reserved:</label> ${firstItem.Reserved ? 'Yes' : 'No'}</div>
+            <div><label>Serial:</label> ${firstItem.Serial || "-"} </div>
+            <div><label>Area:</label> ${firstItem.Area || "-"} </div>
+            <div><label>Assigned:</label> ${firstItem.Assigned || "-"} </div>
+            <div><label>Notes:</label> ${firstItem.Notes || "-"} </div>
+            <div><em>Quantity in group: ${quantity}</em></div>
+            <div class="asset-actions">
+              <button class="btn" onclick="editAssetGroup('${groupName}')">Edit Group</button>
+              <button class="btn delete" onclick="deleteAssetGroup('${groupName}')">Delete Group</button>
+            </div>
+            <div style="margin-top: 15px;">
+              <label>Individual Items:</label>
+              <ul class="individual-items-list">
+                ${groupItems.map((item, groupIndex) => {
+                  const globalIndex = ALL_ASSETS.findIndex(a => a === item);
+                  const serialDisplay = item.Serial ? ` (${item.Serial})` : '';
+                  if (globalIndex === -1) {
+                      console.error("Could not find global index for item:", item);
+                      return `<li class="individual-item" style="color: red;">Error: Item not found</li>`;
+                  }
+                  return `
+                    <li class="individual-item">
+                      <span>Item ${groupIndex + 1}${serialDisplay}</span>
+                      <button class="btn" style="padding: 5px 10px; font-size: 0.9rem;" onclick="editSingleAsset(${globalIndex})">Edit</button>
+                    </li>
+                  `;
+                }).join('')}
+              </ul>
+            </div>
+          </div>
+        </li>
+      `;
+      }).join("");
+      
+      box.querySelectorAll('.asset-card-header').forEach(header => {
+        header.onclick = function() {
+          const card = header.closest('.asset-card');
+          const groupName = card.getAttribute('data-name');
+          const groupItems = assetGroups[groupName] || [];
+          const isOpen = card.classList.contains('open');
+          groupItems.forEach(item => item.open = !isOpen);
+          card.classList.toggle('open');
+        };
+      });
+    }
+    
     async function fetchAssets() {
       try {
         let res = await fetch(JSONBIN_API + "/latest", {
@@ -401,24 +653,33 @@
             Area: "Office",
             Assigned: "",
             Notes: "",
-            Faulty: false
+            Faulty: false,
+            Reserved: false
           }];
         }
         populateTypeFilter();
         renderAssets(
           document.getElementById("searchInput").value,
           document.getElementById("typeFilter").value,
-          document.getElementById("faultyFilter").value
+          document.getElementById("statusFilter").value
         );
       } catch (e) {
         document.getElementById("assetsBox").innerHTML = `<div style="color:red;margin:20px 0;text-align:center">Could not load data.<br>${e}</div>`;
       }
     }
-    async function saveAsset(asset, editingIdx) {
+    
+    // Modified saveAsset function to handle quantity
+    async function saveAsset(asset, editingIdx, quantity = 1) {
       try {
         let updated = [...ALL_ASSETS];
-        if (typeof editingIdx === "number") updated[editingIdx] = asset;
-        else updated.push(asset);
+        const qty = Math.max(1, parseInt(quantity, 10) || 1);
+        if (typeof editingIdx === "number") {
+            updated[editingIdx] = asset;
+        } else {
+            for (let i = 0; i < qty; i++) {
+                updated.push({...asset});
+            }
+        }
         let res = await fetch(JSONBIN_API, {
           method: "PUT",
           headers: { "Content-Type": "application/json", "X-Master-Key": JSONBIN_KEY },
@@ -429,70 +690,163 @@
         else alert("Save failed: " + (result.message || JSON.stringify(result)));
       } catch (e) { alert("Save error: " + e); }
     }
-    async function deleteAsset(idx) {
-      if (!confirm("Delete this asset?")) return;
-      let updated = ALL_ASSETS.filter((a, i) => i !== idx);
-      try {
-        let res = await fetch(JSONBIN_API, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json", "X-Master-Key": JSONBIN_KEY },
-          body: JSON.stringify(updated)
-        });
-        let result = await res.json();
-        if (result && result.record) fetchAssets();
-        else alert("Delete failed: " + (result.message || JSON.stringify(result)));
-      } catch (e) { alert("Delete error: " + e); }
+    
+    // New function to delete an entire group
+    async function deleteAssetGroup(groupName) {
+       if (!confirm(`Delete ALL assets named "${groupName}"?`)) return;
+       let updated = ALL_ASSETS.filter(a => (a.Name || "<i>Unnamed Asset</i>") !== groupName);
+       try {
+         let res = await fetch(JSONBIN_API, {
+           method: "PUT",
+           headers: { "Content-Type": "application/json", "X-Master-Key": JSONBIN_KEY },
+           body: JSON.stringify(updated)
+         });
+         let result = await res.json();
+         if (result && result.record) fetchAssets();
+         else alert("Delete failed: " + (result.message || JSON.stringify(result)));
+       } catch (e) { alert("Delete error: " + e); }
     }
-    function renderAssets(search = "", type = "All Types", faultyFilter = "All") {
-      const box = document.getElementById("assetsBox");
-      let filtered = ALL_ASSETS;
-      if (search) {
-        filtered = filtered.filter(a =>
-          (a.Name + (a.Type||"") + (a.Serial||"") + (a.Area||"") + (a.Assigned||"") + (a.Notes||""))
-            .toLowerCase().includes(search.toLowerCase())
-        );
-      }
-      if (type && type !== "All Types") {
-        filtered = filtered.filter(a => (a.Type||"").toLowerCase() === type.toLowerCase());
-      }
-      if (faultyFilter === "FaultyOnly") {
-        filtered = filtered.filter(a => a.Faulty === true);
-      }
-      if (!filtered.length) {
-        box.innerHTML = `<div style="color:#888;margin:20px 0;text-align:center">No assets found.</div>`;
-        return;
-      }
-      box.innerHTML = filtered.map((a, i) => `
-        <li class="asset-card${a.open?" open":""}" data-idx="${i}">
-          <div class="asset-card-header">
-            <span>${a.Name || "<i>Unnamed Asset</i>"}</span>
-            ${a.Faulty ? '<span class="badge faulty-badge">Faulty</span>' : ''}
-            <span class="expand-icon">&#9654;</span>
-          </div>
-          <div class="asset-details">
-            <div><label>Type:</label> <span class="chip">${a.Type || "-"}</span></div>
-            <div><label>Faulty:</label> ${a.Faulty ? 'Yes' : 'No'}</div>
-            <div><label>Serial:</label> ${a.Serial || "-"} </div>
-            <div><label>Area:</label> ${a.Area || "-"} </div>
-            <div><label>Assigned:</label> ${a.Assigned || "-"} </div>
-            <div><label>Notes:</label> ${a.Notes || "-"} </div>
-            <div class="asset-actions">
-              <button class="btn" onclick="editAsset(${i})">Edit</button>
-              <button class="btn delete" onclick="deleteAsset(${i})">Delete</button>
-            </div>
-          </div>
-        </li>
-      `).join("");
-      box.querySelectorAll('.asset-card-header').forEach(header => {
-        header.onclick = function() {
-          let card = header.closest('.asset-card');
-          card.classList.toggle('open');
+    
+    // Function to show the group edit form
+    function showGroupEditForm(groupName) {
+        const groupItems = ALL_ASSETS.filter(a => (a.Name || "<i>Unnamed Asset</i>") === groupName);
+        if (groupItems.length === 0) {
+            alert("No items found in this group.");
+            return;
+        }
+        const commonValues = getCommonGroupValues(groupItems);
+        const itemCount = groupItems.length;
+        const modal = document.getElementById("formModal");
+        const formCard = document.getElementById("formCard");
+        modal.classList.add("show");
+        
+        let formHTML = `
+            <form id="groupEditForm" autocomplete="off">
+                <h3 style="margin-top:0; text-align:center;">Edit Group: ${groupName}</h3>
+                <p style="text-align:center; margin-top:0; margin-bottom:15px;"><em>Editing ${itemCount} item(s)</em></p>
+                <label for="groupEditType">Type:</label>
+                <select name="Type" id="groupEditType">
+                    <option value="">(No Change)</option>
+                    ${ASSET_TYPES.map(t =>
+                        `<option value="${t}" ${commonValues.Type === t ? "selected" : ""}>${t}</option>`
+                    ).join("")}
+                </select>
+                <label for="groupEditArea">Area:</label>
+                <select name="Area" id="groupEditArea">
+                    <option value="">(No Change)</option>
+                    <option value="" disabled>Select Area</option>
+                    ${AREA_OPTIONS.map(opt => `<option value="${opt}" ${commonValues.Area === opt ? "selected" : ""}>${opt}</option>`).join("")}
+                </select>
+                <label for="groupEditAssigned">Assigned To:</label>
+                <input type="text" name="Assigned" id="groupEditAssigned" placeholder="Assigned To" value="${commonValues.Assigned || ''}">
+                <label for="groupEditNotes">Notes:</label>
+                <textarea name="Notes" id="groupEditNotes" placeholder="Notes" style="min-height:48px">${commonValues.Notes || ''}</textarea>
+                <div style="display:flex; flex-wrap:wrap; gap:15px; margin-top:10px;">
+                    <label style="display:flex;align-items:center;">
+                        <input type="checkbox" name="Faulty" id="groupEditFaultyCheckbox" ${commonValues.Faulty === true ? "checked" : ""} style="margin-right:8px;">
+                        Set Faulty Status for All
+                    </label>
+                    <select name="FaultyAction" id="groupEditFaultyAction" style="margin-left: 0px; margin-top: 5px;">
+                        <option value="nochange">No Change</option>
+                        <option value="setTrue">Set to Faulty</option>
+                        <option value="setFalse">Set to Not Faulty</option>
+                    </select>
+                </div>
+                <div style="display:flex; flex-wrap:wrap; gap:15px; margin-top:10px;">
+                    <label style="display:flex;align-items:center;">
+                        <input type="checkbox" name="Reserved" id="groupEditReservedCheckbox" ${commonValues.Reserved === true ? "checked" : ""} style="margin-right:8px;">
+                        Set Reserved Status for All
+                    </label>
+                    <select name="ReservedAction" id="groupEditReservedAction" style="margin-left: 0px; margin-top: 5px;">
+                        <option value="nochange">No Change</option>
+                        <option value="setTrue">Set to Reserved</option>
+                        <option value="setFalse">Set to Not Reserved</option>
+                    </select>
+                </div>
+                <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:20px;">
+                    <button class="btn" type="submit" style="flex:1;">Update Group</button>
+                    <button class="btn cancel" type="button" id="groupEditCancelBtn" style="flex:1;">Cancel</button>
+                </div>
+            </form>
+        `;
+        formCard.innerHTML = formHTML;
+        
+        document.getElementById("groupEditForm").onsubmit = function(e) {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const updates = Object.fromEntries(formData);
+            
+            const updatedAssets = [...ALL_ASSETS];
+            const indicesToUpdate = updatedAssets.reduce((indices, asset, index) => {
+                if ((asset.Name || "<i>Unnamed Asset</i>") === groupName) {
+                    indices.push(index);
+                }
+                return indices;
+            }, []);
+            
+            indicesToUpdate.forEach(idx => {
+                if (updates.Type) updatedAssets[idx].Type = updates.Type;
+                if (updates.Area) updatedAssets[idx].Area = updates.Area;
+                if (updates.Assigned !== undefined) updatedAssets[idx].Assigned = updates.Assigned;
+                if (updates.Notes !== undefined) updatedAssets[idx].Notes = updates.Notes;
+                
+                const faultyAction = updates.FaultyAction;
+                if (faultyAction === "setTrue") {
+                    updatedAssets[idx].Faulty = true;
+                } else if (faultyAction === "setFalse") {
+                    updatedAssets[idx].Faulty = false;
+                }
+                
+                const reservedAction = updates.ReservedAction;
+                if (reservedAction === "setTrue") {
+                    updatedAssets[idx].Reserved = true;
+                } else if (reservedAction === "setFalse") {
+                    updatedAssets[idx].Reserved = false;
+                }
+            });
+            
+            saveUpdatedAssets(updatedAssets);
+            modal.classList.remove("show");
         };
-      });
+        
+        document.getElementById("groupEditCancelBtn").onclick = function() {
+            modal.classList.remove("show");
+        };
     }
+    
+    // Helper function to save the updated assets list
+    async function saveUpdatedAssets(updatedAssetsArray) {
+        try {
+            let res = await fetch(JSONBIN_API, {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-Master-Key": JSONBIN_KEY
+                },
+                body: JSON.stringify(updatedAssetsArray)
+            });
+            let result = await res.json();
+            if (result && result.record) {
+                ALL_ASSETS = updatedAssetsArray;
+                populateTypeFilter();
+                renderAssets(
+                    document.getElementById("searchInput").value,
+                    document.getElementById("typeFilter").value,
+                    document.getElementById("statusFilter").value
+                );
+            } else {
+                alert("Update failed: " + (result.message || JSON.stringify(result)));
+            }
+        } catch (e) {
+            alert("Update error: " + e);
+        }
+    }
+    
+    // Modified showForm function to include quantity input and Reserved checkbox
     function showForm(asset = {}, editingIdx = null) {
       const modal = document.getElementById("formModal");
       const formCard = document.getElementById("formCard");
+      const isEditing = typeof editingIdx === "number";
       modal.classList.add("show");
       formCard.innerHTML = `
         <form id="assetForm" autocomplete="off">
@@ -510,12 +864,24 @@
           </select>
           <input type="text" name="Assigned" placeholder="Assigned To" value="${asset.Assigned||""}">
           <textarea name="Notes" placeholder="Notes" style="min-height:48px">${asset.Notes||""}</textarea>
-          <label style="display:flex;align-items:center;margin-top:6px;">
-            <input type="checkbox" name="Faulty" ${asset.Faulty ? "checked" : ""} style="margin-right:8px;">
-            Faulty
-          </label>
+          <div style="display:flex; flex-wrap:wrap; gap:15px; margin-top:6px;">
+              <label style="display:flex;align-items:center;">
+                <input type="checkbox" name="Faulty" ${asset.Faulty ? "checked" : ""} style="margin-right:8px;">
+                Faulty
+              </label>
+              <label style="display:flex;align-items:center;">
+                <input type="checkbox" name="Reserved" ${asset.Reserved ? "checked" : ""} style="margin-right:8px;">
+                Reserved
+              </label>
+          </div>
+          ${!isEditing ? `
+          <div class="quantity-input-group">
+            <label for="quantityInput">Quantity:</label>
+            <input type="number" id="quantityInput" name="quantity" min="1" value="1" required>
+          </div>
+          ` : ''}
           <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:12px;">
-            <button class="btn" type="submit" style="flex:1;">Save</button>
+            <button class="btn" type="submit" style="flex:1;">${isEditing ? 'Update' : 'Add'} Asset</button>
             <button class="btn cancel" type="button" id="cancelBtn" style="flex:1;">Cancel</button>
           </div>
         </form>
@@ -527,9 +893,11 @@
         const formData = Object.fromEntries(new FormData(form));
         const newAsset = {
           ...formData,
-          Faulty: form.Faulty.checked
+          Faulty: form.Faulty.checked,
+          Reserved: form.Reserved.checked
         };
-        saveAsset(newAsset, editingIdx);
+        const quantityToAdd = isEditing ? 1 : parseInt(form.quantity?.value, 10) || 1;
+        saveAsset(newAsset, editingIdx, quantityToAdd);
         modal.classList.remove("show");
       };
       document.getElementById("cancelBtn").onclick = function() {
@@ -539,6 +907,7 @@
         openBarcodeScanner(document.getElementById("serialInput"));
       };
     }
+    
     function openBarcodeScanner(inputElem) {
       let modal = document.createElement("div");
       modal.id = "scanner-container";
@@ -585,16 +954,175 @@
           statusElem.textContent = "Camera error: " + e;
         });
     }
-    window.editAsset = function(idx) {
-      showForm(ALL_ASSETS[idx], idx);
-    };
-    window.deleteAsset = deleteAsset;
+    
+    // Function to edit a single asset by its global index
+    function editSingleAsset(globalIndex) {
+        if (globalIndex >= 0 && globalIndex < ALL_ASSETS.length) {
+            const assetToEdit = ALL_ASSETS[globalIndex];
+            showForm(assetToEdit, globalIndex);
+        } else {
+            alert("Error: Invalid asset index.");
+        }
+    }
+    
+    // Function to show asset type management modal
+    function showTypeManagement() {
+      const modal = document.getElementById("typesModal");
+      const card = document.getElementById("typesCard");
+      modal.classList.add("show");
+      
+      let html = `
+        <h3 style="margin-top:0; text-align:center;">Manage Asset Types</h3>
+        <div id="typesList" style="max-height: 60vh; overflow-y: auto; margin-bottom: 20px;">
+          ${ASSET_TYPES.map((type, index) => `
+            <div class="type-item" data-index="${index}">
+              <input type="text" class="type-input" value="${type}" data-original="${type}">
+              <div class="type-actions">
+                <button class="btn type-btn update-type" title="Update Type">💾</button>
+                <button class="btn delete type-btn delete-type" title="Delete Type">🗑️</button>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+        <div style="display:flex;gap:10px;justify-content:flex-end;">
+          <button class="btn" id="addTypeField" style="flex:1;">Add New Type</button>
+          <button class="btn cancel" id="closeTypesModal" style="flex:1;">Close</button>
+        </div>
+      `;
+      
+      card.innerHTML = html;
+      
+      // Add event listeners for type management
+      document.querySelectorAll('.update-type').forEach(btn => {
+        btn.addEventListener('click', function() {
+          const item = this.closest('.type-item');
+          const index = parseInt(item.dataset.index);
+          const input = item.querySelector('.type-input');
+          const newName = input.value.trim();
+          const originalName = input.dataset.original;
+          
+          if (!newName) {
+            alert("Type name cannot be empty!");
+            return;
+          }
+          
+          if (newName !== originalName) {
+            // Check if new name already exists
+            if (ASSET_TYPES.includes(newName)) {
+              alert(`Asset type "${newName}" already exists!`);
+              return;
+            }
+            
+            // Update the type in the list
+            ASSET_TYPES[index] = newName;
+            input.dataset.original = newName;
+            
+            // Update assets with this type
+            ALL_ASSETS.forEach(asset => {
+              if (asset.Type === originalName) {
+                asset.Type = newName;
+              }
+            });
+            
+            // Save and refresh
+            saveUpdatedAssets(ALL_ASSETS);
+            alert(`Asset type updated from "${originalName}" to "${newName}"`);
+          }
+        });
+      });
+      
+      document.querySelectorAll('.delete-type').forEach(btn => {
+        btn.addEventListener('click', function() {
+          const item = this.closest('.type-item');
+          const index = parseInt(item.dataset.index);
+          const typeName = ASSET_TYPES[index];
+          
+          // Check if any assets use this type
+          const assetsUsingType = ALL_ASSETS.filter(a => a.Type === typeName);
+          
+          if (assetsUsingType.length > 0) {
+            if (!confirm(`There are ${assetsUsingType.length} assets using the type "${typeName}". Deleting this type will reset these assets to "Other". Continue?`)) {
+              return;
+            }
+            
+            // Reset assets to "Other" type
+            assetsUsingType.forEach(asset => {
+              asset.Type = "Other";
+            });
+          }
+          
+          // Remove from ASSET_TYPES
+          ASSET_TYPES.splice(index, 1);
+          
+          // Save and refresh
+          saveUpdatedAssets(ALL_ASSETS);
+          showTypeManagement(); // Refresh the modal
+        });
+      });
+      
+      document.getElementById("addTypeField").addEventListener('click', function() {
+        const newList = document.getElementById("typesList");
+        const newIndex = ASSET_TYPES.length;
+        const newItem = document.createElement('div');
+        newItem.className = 'type-item';
+        newItem.dataset.index = newIndex;
+        newItem.innerHTML = `
+          <input type="text" class="type-input" placeholder="New type name" data-original="">
+          <div class="type-actions">
+            <button class="btn type-btn update-type" title="Add Type">💾</button>
+            <button class="btn delete type-btn delete-type" title="Delete Type">🗑️</button>
+          </div>
+        `;
+        newList.appendChild(newItem);
+        
+        // Add event listeners to the new item
+        newItem.querySelector('.update-type').addEventListener('click', function() {
+          const input = newItem.querySelector('.type-input');
+          const newName = input.value.trim();
+          
+          if (!newName) {
+            alert("Type name cannot be empty!");
+            return;
+          }
+          
+          if (ASSET_TYPES.includes(newName)) {
+            alert(`Asset type "${newName}" already exists!`);
+            return;
+          }
+          
+          // Add to ASSET_TYPES
+          ASSET_TYPES.push(newName);
+          input.dataset.original = newName;
+          
+          // Save and refresh
+          saveUpdatedAssets(ALL_ASSETS);
+          showTypeManagement(); // Refresh the modal
+        });
+        
+        newItem.querySelector('.delete-type').addEventListener('click', function() {
+          newItem.remove();
+        });
+        
+        // Focus on the new input
+        newItem.querySelector('.type-input').focus();
+      });
+      
+      document.getElementById("closeTypesModal").addEventListener('click', function() {
+        modal.classList.remove("show");
+      });
+    }
+    
+    // Update the global reference to the edit functions
+    window.editAssetGroup = showGroupEditForm;
+    window.editSingleAsset = editSingleAsset;
+    window.deleteAssetGroup = deleteAssetGroup;
+    
     document.getElementById("exportBtn").onclick = function() {
       if (!ALL_ASSETS.length) return alert("No assets to export.");
       const csv = [
-        ["Name","Type","Serial","Area","Assigned","Notes","Faulty"].join(","),
+        ["Name","Type","Serial","Area","Assigned","Notes","Faulty", "Reserved"].join(","),
         ...ALL_ASSETS.map(a =>
-          [a.Name,a.Type,a.Serial,a.Area,a.Assigned,a.Notes,a.Faulty ? "Yes" : "No"]
+          [a.Name,a.Type,a.Serial,a.Area,a.Assigned,a.Notes,a.Faulty ? "Yes" : "No", a.Reserved ? "Yes" : "No"]
             .map(x => `"${(x||"").replace(/"/g,'""')}"`).join(",")
         )
       ].join("\n");
@@ -605,6 +1133,7 @@
       a.click();
       URL.revokeObjectURL(url);
     };
+    
     document.getElementById("pdfBtn").onclick = function() {
       const counts = getTypeCounts();
       const doc = new window.jspdf.jsPDF();
@@ -621,20 +1150,26 @@
       doc.text(`Total assets: ${ALL_ASSETS.length}`, 14, y + Object.keys(counts).length * 9 + 10);
       doc.save("Asset_Types_Quantities.pdf");
     };
+    
     document.getElementById("addFab").onclick = function() { showForm(); };
+    document.getElementById("manageTypesBtn").onclick = showTypeManagement;
+    
     document.getElementById("searchInput").oninput = function(e) {
-      renderAssets(e.target.value, document.getElementById("typeFilter").value, document.getElementById("faultyFilter").value);
+      renderAssets(e.target.value, document.getElementById("typeFilter").value, document.getElementById("statusFilter").value);
     };
+    
     document.getElementById("typeFilter").onchange = function(e) {
       CURRENT_TYPE = e.target.value;
-      renderAssets(document.getElementById("searchInput").value, document.getElementById("typeFilter").value, document.getElementById("faultyFilter").value);
+      renderAssets(document.getElementById("searchInput").value, document.getElementById("typeFilter").value, document.getElementById("statusFilter").value);
     };
-    document.getElementById("faultyFilter").onchange = function(e) {
+    
+    document.getElementById("statusFilter").onchange = function(e) {
       renderAssets(document.getElementById("searchInput").value, document.getElementById("typeFilter").value, e.target.value);
     };
+    
     setTimeout(fetchAssets, 120);
     window.onresize = function() {
-      renderAssets(document.getElementById("searchInput").value, document.getElementById("typeFilter").value, document.getElementById("faultyFilter").value);
+      renderAssets(document.getElementById("searchInput").value, document.getElementById("typeFilter").value, document.getElementById("statusFilter").value);
     };
   </script>
 </body>
